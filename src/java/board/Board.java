@@ -2,7 +2,7 @@ package board;
 
 import java.util.*;
 import java.io.BufferedReader;
-import java.io.FileReader;;
+import java.io.FileReader;
 
 import city.City;
 import _aux.Options;
