@@ -37,7 +37,7 @@ public class Game{
   // GRA
   private Renderer render;
 
-  // TO-DO - Game cards
+  // TODO - Game cards
   /*
   public ArrayList<Card> cards_player;  // drawable cards (only those that are available)
   public ArrayList<Card> discarded_pcards;  // discarded cards
@@ -80,7 +80,7 @@ public class Game{
     Board board = new Board(Datapaths.map, g.cities);
     GameStatus gs = new GameStatus(board);
 
-    // TO-DO
+    // TODO
     /*
       Settle initial game configuration. Needs to implement:
         * Initial diseases (draw infection cards as per the real game)
@@ -95,6 +95,10 @@ public class Game{
     g.render = new Renderer(g, null, board);
 
     // Game cycle. Runs unitl the game is over
+    // TODO: Jason does not work with a infinite loop. The last action in each
+    // must be a turn end function that must do the turn change calls.
+    // This class must extends Environment and define the possible actions that
+    // agents can do.
     while(!gs.over){
 
       // Refresh graphics for updated cells. MUST KEEP RECORD OF THE UPDATED CITIES ON EACH TURN!
@@ -124,18 +128,18 @@ public class Game{
         // Action round
         while(gs.p_actions_left > 0){
 
-          // TO-DO - Player resolves action
+          // TODO - Player resolves action
           gs.p_actions_left--;
         }
 
-        // TO-DO
+        // TODO
         // Draw cards
         /*
           Define in Game a list of drawable cards from which the player should pick on each round
           p.draw(cards);
         */
 
-        // TO-DO
+        // TODO
         // Resolve infection
         /*
           Define in Game a list of drawable infection cards from which the player should pick on each round (the cards are activated at game level)

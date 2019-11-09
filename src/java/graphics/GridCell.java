@@ -67,10 +67,10 @@ public class GridCell extends Box{
     // Refresh epidemics
     this.info_diseases.update(this.board_cell, this.r);
 
-    // TO-DO Refresh players
+    // TODO Refresh players
     this.info_players.update(this.board_cell, this.r);
 
-    // TO-DO Refresh research centers
+    // TODO Refresh research centers
   }
 
   /*

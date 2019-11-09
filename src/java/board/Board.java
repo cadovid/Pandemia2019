@@ -147,7 +147,7 @@ public class Board{
     return this.map[row][col];
   }
 
-  // TO-DO
+  // TODO
   /*
     Resolves adjacent cities
   */
@@ -155,7 +155,7 @@ public class Board{
     return;
   }
 
-  // TO-DO
+  // TODO
   /*
     Returns a sorted list of Cell objects, which represents the shortest path between two cells in the board
   */
