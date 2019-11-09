@@ -114,7 +114,7 @@ public class Player{
     return players;
   }
 
-  // TO-DO
+  // TODO
   /*
     Resolves player order based on initial player hand (as per the original game)
   */
@@ -130,14 +130,64 @@ public class Player{
     return p_order;
   }
 
-  // TO-DO
-  /*
-    Wrapper method to resolve a player action
-  */
-  public void resolveAction(Game g){
-    return;
+  /**
+   * Flies to the destination city discarding one card of the hand of that city.
+   * @param destination
+   * @return true if moved and false otherwise.
+   */
+  public boolean directFlight(City destination) {
+	  boolean moved = false;
+	  for (Card card : this.hand) {
+		  if (card.getCity() == destination) {
+			  this.city.removePlayer(this);
+			  this.city = destination;
+			  this.city.putPlayer(this);
+			  this.hand.remove(card);
+			  return true;
+		  }
+	  }
+	  
+	  return moved;
   }
-
+  
+  /**
+   * Flies to the destination city discarding one card of the hand of the
+   * current city.
+   * @param destination
+   * @return true if moved and false otherwise.
+   */
+  public boolean charterFlight(City destination) {
+	  boolean moved = false;
+	  for (Card card : this.hand) {
+		  if (card.getCity() == this.city) {
+			  this.city.removePlayer(this);
+			  this.city = destination;
+			  this.city.putPlayer(this);
+			  this.hand.remove(card);			  
+			  return true;
+		  }
+	  }
+	  
+	  return moved;
+  }
+  
+  /**
+   * Flies to the destination city if there is a investigation center in the
+   * current city and another one in the destination city.
+   * @param destination
+   * @return true if moved and false otherwise.
+   */
+  public boolean airBridge(City destination) {
+	  boolean moved = false;
+	  if (this.city.canResearch() && destination.canResearch()) {
+		  this.city.removePlayer(this);
+		  this.city = destination;
+		  this.city.putPlayer(this);
+		  moved = true;
+	  }
+	  
+	  return moved;
+  }
 
 
   // Setters/Getters

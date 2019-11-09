@@ -22,4 +22,8 @@ public final class CustomTypes{
     DUMP,
     ALL,
   }
+  
+  public static enum Color {
+    RED, BLUE, BLACK, YELLOW
+  }
 }
