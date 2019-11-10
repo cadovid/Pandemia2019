@@ -37,7 +37,7 @@ public class Epidemic{
     }
   }
 
-  // TO-DO
+  // TODO
   /*
     Spreads a disease to a neighbor city using its City object
     // Should call the "spreadToCity" method of the associated Disease object
