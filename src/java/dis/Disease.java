@@ -112,6 +112,35 @@ public class Disease{
 
     return diseases;
   }
+  
+  
+//////// new grupo 3
+  public void treatDesease(Epidemic e){
+	  if (cure == true){
+		  heal(e.spread_level);
+		  e.spread_level = 0;
+		  // Borrar objeto epidemia (no tiene sentido, porque epidemia debería ser un atributo de ciudad, no un objeto). 
+	  }
+	  else{
+		  heal(1);
+		  e.spread_level -= 1;
+	  }
+  }
+	
+ 
+  public void infectEpidemic(/*Game g*/){
+	  // AUMENTAR EN UNO EL CONTADOR DE EPIDEMIAS. 
+	  /*
+	  Card c = g.cards_infection.pop(g.cards_infection.size()-1);
+	  infect(c.city,3); // Función grupo 4
+	  g.discarded_icards.add(c); 
+	  while (g.discarded_icards != null){
+		  g.cards_infection.add(0, g.discarded_icards.pop((int)(Math.random()*discarded_icards.size()))); 
+	  }
+	  */
+  }
+//////// new grupo 3
+  
 
   // Weakens disease by increasing spreads_left counter by "n_heals"
   public void heal(int n_heals){
