@@ -7,6 +7,7 @@ import player.*;
 import dis.*;
 import city.*;
 import board.*;
+import card.Card;
 import graphics.Renderer;
 import _aux.Datapaths;
 import _aux.Options;
@@ -37,7 +38,7 @@ public class Game{
   // GRA
   private Renderer render;
 
-  // TODO - Game cards
+  // TO-DO - Game cards
   /*
   public ArrayList<Card> cards_player;  // drawable cards (only those that are available)
   public ArrayList<Card> discarded_pcards;  // discarded cards
@@ -72,7 +73,50 @@ public class Game{
     this.n_cities = this.cities.size();
     this.n_players = this.players.size();
   }
-
+  
+  // TO-DO
+  /*
+   * ¿Any security check? As number of cards, disease color,....
+   * Change current player left actions.
+   */
+  
+  /*
+  discoverCure
+    Remove to the player hands needed cards and set in the selected disease the attribute cure to True
+   */
+  public void discoverCure(Player player, String diseaseAlias, ArrayList<Card> cityCards) {
+	  Disease disease = this.diseases.get(diseaseAlias);
+	  for(int i = 0; i<cityCards.size(); i++) {
+		  player.removeCard(cityCards.get(i));
+		  //discarded_pcards.add(c);
+	  }
+	  disease.setCure(true);
+	  
+  }
+  
+  // TO-DO
+  /*
+   * When cards_player will be implemented, uncomment the function
+   */
+  
+  /*
+  drawCards
+    Add to the player's hand the selected number of cards from cards_players list
+    Return true if are enough cards, false otherwise
+   */
+  /*
+  public boolean drawCards(Player player, int cardsToDraw) {
+	  if (cards_player.size() >= cardsToDraw) {
+		  for(int i = 0; i < cardsToDraw; i++) {
+			  player.addCard(cards_player.remove(0));
+		  }
+		  return true;
+	  }else {
+		  return false;
+	  }
+  }
+*/
+  
   public static void main(String args[]){
 
     // Initializes game
@@ -80,7 +124,7 @@ public class Game{
     Board board = new Board(Datapaths.map, g.cities);
     GameStatus gs = new GameStatus(board);
 
-    // TODO
+    // TO-DO
     /*
       Settle initial game configuration. Needs to implement:
         * Initial diseases (draw infection cards as per the real game)
@@ -95,10 +139,6 @@ public class Game{
     g.render = new Renderer(g, null, board);
 
     // Game cycle. Runs unitl the game is over
-    // TODO: Jason does not work with a infinite loop. The last action in each
-    // must be a turn end function that must do the turn change calls.
-    // This class must extends Environment and define the possible actions that
-    // agents can do.
     while(!gs.over){
 
       // Refresh graphics for updated cells. MUST KEEP RECORD OF THE UPDATED CITIES ON EACH TURN!
@@ -128,18 +168,18 @@ public class Game{
         // Action round
         while(gs.p_actions_left > 0){
 
-          // TODO - Player resolves action
+          // TO-DO - Player resolves action
           gs.p_actions_left--;
         }
 
-        // TODO
+        // TO-DO
         // Draw cards
         /*
           Define in Game a list of drawable cards from which the player should pick on each round
           p.draw(cards);
         */
 
-        // TODO
+        // TO-DO
         // Resolve infection
         /*
           Define in Game a list of drawable infection cards from which the player should pick on each round (the cards are activated at game level)
