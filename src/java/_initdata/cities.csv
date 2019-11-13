@@ -1,49 +1,49 @@
-Chicago;chg;dia;BLUE
-San Francisco;sfr;dia;BLUE
-Atlanta;atl;dia;BLUE
-Nueva York;nyc;dia;BLUE
-Miami;mia;ban;BLUE
-Mexico;mex;ban;BLUE
-Lima;lim;ban;BLUE
-Sao Paulo;spa;ban;BLUE
-Bogotá;bog;ban;BLUE
-Berlín;ber;dia;BLUE
-Londres;lon;dia;BLUE
-París;par;dia;BLUE
-Milán;mil;dia;BLUE
-Madrid;mad;dia;BLUE
-Jartum;jar;ebo;BLUE
-El Cairo;car;ebo;BLUE
-Baghdad;bag;ebo;BLUE
-Estambúl;ist;lup;BLUE
-Beijing;bei;lup;BLUE
-Seúl;seo;lup;BLUE
-Teherán;teh;lup;BLUE
-Manila;man;lup;BLUE
-Sídney;syd;dia;BLUE
-Delhi;del;lup;BLUE
-Bangkok;ban;lup;BLUE
-Hong Kong;hkg;lup;BLUE
-Buenos Aires;bua;ban;BLUE
-Lagos;lag;ban;BLUE
-Los Angeles;lan;dia;BLUE
-Montreal;mon;dia;BLUE
-Moscow;mos;lup;BLUE
-Mumbai;mum;ebo;BLUE
-Osaka;osa;lup;BLUE
-Riyadh;riy;ebo;BLUE
-Santiago;san;ban;BLUE
-Taipei;tai;lup;BLUE
-Tokyo;tok;lup;BLUE
-Washington;was;dia;BLUE
-Kolkata;kol;lup;BLUE
-Algiers;alg;dia;BLUE
-Chennai;chen;ban;BLUE
-Essen;ess;dia;BLUE
-Ho Chi Minh City;hcm;lup;BLUE
-Jakarta;jak;lup;BLUE
-Johannesburg;joh;dia;BLUE
-Karachi;kar;lup;BLUE
-Kinshasa;kin;lup;BLUE
-Shanghai;shan;lup;BLUE
-St. Petersburg;pet;dia;BLUE
+Chicago;chg;dia
+San Francisco;sfr;dia
+Atlanta;atl;dia
+Nueva York;nyc;dia
+Miami;mia;ban
+Mexico;mex;ban
+Lima;lim;ban
+Sao Paulo;spa;ban
+Bogotá;bog;ban
+Berlín;ber;dia
+Londres;lon;dia
+París;par;dia
+Milán;mil;dia
+Madrid;mad;dia
+Jartum;jar;ebo
+El Cairo;car;ebo
+Baghdad;bag;ebo
+Estambúl;ist;lup
+Beijing;bei;lup
+Seúl;seo;lup
+Teherán;teh;lup
+Manila;man;lup
+Sídney;syd;dia
+Delhi;del;lup
+Bangkok;ban;lup
+Hong Kong;hkg;lup
+Buenos Aires;bua;ban
+Lagos;lag;ban
+Los Angeles;lan;dia
+Montreal;mon;dia
+Moscow;mos;lup
+Mumbai;mum;ebo
+Osaka;osa;lup
+Riyadh;riy;ebo
+Santiago;san;ban
+Taipei;tai;lup
+Tokyo;tok;lup
+Washington;was;dia
+Kolkata;kol;lup
+Algiers;alg;dia
+Chennai;chen;ban
+Essen;ess;dia
+Ho Chi Minh City;hcm;lup
+Jakarta;jak;lup
+Johannesburg;joh;dia
+Karachi;kar;lup
+Kinshasa;kin;lup
+Shanghai;shan;lup
+St. Petersburg;pet;dia
