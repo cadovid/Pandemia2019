@@ -10,6 +10,7 @@ import player.Player;
 import board.Cell;
 import _aux.Options;
 import _aux.CustomTypes;
+import _aux.CustomTypes.Color;
 
 /*
   City class
@@ -21,24 +22,55 @@ public class City{
   public String alias;
   public String name;
   private Disease local_disease;
+  private Color color;
   private Cell cell;
-  private ArrayList<City> neighbors;  // Adjacent cities. Should be initialized when instatiating the Board object
+  private ArrayList<City> neighbors;  // Adjacent cities. Should be initialized when instantiating the Board object
 
   // Dynamic data. Can be changed through gameplay
   private ArrayList<Player> players = new ArrayList<Player>();  // Players in the city
   private ArrayList<Epidemic> epidemics = new ArrayList<Epidemic>();  // Active diseases
+  /**
+   * true if there is a investigation centre and false otherwise.
+   */
   private boolean can_research = false;
 
   // Constructor
-  public City(String name, String alias, Disease ldis){
+  public City(String name, String alias, Disease ldis, Color color){
     this.name = name;
     this.alias = alias;
     this.local_disease = ldis;
+    this.color = color;
   }
 
   // Setters/Getters
   public void setCell(Cell c){
     this.cell = c;
+  }
+  public Color getColor() {
+	  return this.color;
+  }  
+  public Disease getDisease() {
+	  return this.local_disease;
+  }
+  
+  /**
+   * Parse color from String to Color. The default value is Color.BLACK.
+   * @param c: The color to be parsed.
+   * @return The parsed color.
+   */
+  public static Color parseColor(String c) {
+	  switch (c.toUpperCase()) {
+	  	case "BLUE":
+	  		return Color.BLUE;
+	  	case "YELLOW":
+	  		return Color.YELLOW;
+	  	case "BLACK":
+	  		return Color.BLACK;
+	  	case "RED":
+	  		return Color.RED;
+	  	default:
+	  		return Color.BLACK;
+	  }
   }
 
   /*
@@ -65,6 +97,7 @@ public class City{
       String city_alias;
       String city_ldis_alias;
       Disease city_ldis;
+      Color city_color;
       boolean disease_exists = false;
 
       // Reads city data from subsequent lines (Must follow the expected disease format)
@@ -75,6 +108,7 @@ public class City{
         city_name = city_data[0];
         city_alias = city_data[1];
         city_ldis_alias = city_data[2];
+        city_color = City.parseColor(city_data[3]);
 
         // Tries to create City object
         if(cities.containsKey(city_alias)){
@@ -94,7 +128,7 @@ public class City{
 
           // Creates City object and adds it to the dictionary
           else{
-            City city = new City(city_name, city_alias, diseases.get(city_ldis_alias));
+            City city = new City(city_name, city_alias, diseases.get(city_ldis_alias), city_color);
             cities.put(city_alias, city);
 
             if(Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
@@ -148,6 +182,49 @@ public class City{
   public void putPlayer(Player p){
     this.players.add(p);
   }
+  
+  /**
+   * Removes a player from the city.
+   * @param p
+   */
+  public void removePlayer(Player p) {
+	  if (this.players.contains(p)) {
+		  this.players.remove(p);
+	  }
+  }
+  
+  /**
+   * Returns if there is a investigation centre
+   * @return
+   */
+  public boolean canResearch() {
+	  return this.can_research;
+  }
+    
+  /**
+   * Puts a investigation centre in the city.
+   */
+  public void putInvestigationCentre() {
+	  this.can_research = true;
+  }
+  
+  /**
+   * Returns the epidemic of a given disease.
+   */
+  public Epidemic getEpidemic(Disease disease) {
+	  	  
+      for(Epidemic epidemic: this.epidemics){
+		  if(epidemic.dis.equals(disease)){
+			  return epidemic;
+		  }
+	  }	  
+	  Epidemic epidemic = new Epidemic(disease, this, 0);
+	  this.epidemics.add(epidemic);
+	  disease.epidemics.add(epidemic);
+	  
+	  return epidemic;
+  }
+  
 
   // Dummy method to print city data
   public void dump(){

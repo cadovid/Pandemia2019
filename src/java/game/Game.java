@@ -117,6 +117,54 @@ public class Game{
   }
 */
   
+  /*
+	Infecta las ciudades de manera recursiva
+  */
+  public void infect(City city, Disease dis){
+	  
+	Epidemic epidemic = city.getEpidemic(dis);
+	  
+	// If max spread level exceeded, then an outbreak occurs.
+    if(epidemic.spread_level + 1 > Options.MAX_SPREADS_PER_CITY){
+	  
+	  // Updates disease total spreads
+      dis.spread(Options.MAX_SPREADS_PER_CITY - epidemic.spread_level);
+      epidemic.spread_level = Options.MAX_SPREADS_PER_CITY;
+
+      // Expands to adjacent cities
+      for(int i = 0; i < city.neighbors.size(); i++){
+		  infect(city.neighbors.get(i), dis);
+	  }
+	}
+	else{
+	   
+	   epidemic.spread_level = epidemic.spread_level + 1;	
+	}
+  }
+
+  // TO-DO
+  /*
+   * When cards_infection will be implemented, uncomment the function
+   */
+  
+  /*
+  DrawInfectionCards
+    Infect the city indicated by the infection card
+    Return true if are enough cards, false otherwise
+   */
+  public boolean DrawInfectionCards(Player player, int cardsToDraw) {
+	  if (cards_infection.size() >= cardsToDraw) {
+		  for(int i = 0; i < cardsToDraw; i++) {
+			  InfectionCard card = cards_infection.remove(0);
+			  infect(card.getCity(), card.getDisease());
+		  }
+		  return true;
+	  }
+	  else{
+		  return false;
+	  }
+  }
+  
   public static void main(String args[]){
 
     // Initializes game

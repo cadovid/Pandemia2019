@@ -31,14 +31,6 @@ public class Disease{
     this.spreads_left = max_spreads;
     this.epidemics = new ArrayList<Epidemic>();
   }
-  
-  public boolean getCure() {
-	  return this.cure;
-  }
-  
-  public void setCure(boolean hasCure) {
-	  this.cure = hasCure;
-  }
 
   /*
     parseDis

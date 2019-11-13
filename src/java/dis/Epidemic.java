@@ -16,7 +16,7 @@ public class Epidemic{
     this.spread_level = spread;
   }
 
-  // Increases the strength of the epidemic in the city by "increment". Spreads to neighbor cities if neccesary
+ /** // Increases the strength of the epidemic in the city by "increment". Spreads to neighbor cities if neccesary
   public void strengthen(int increment){
 
     // If max spread level exceeded, then an outbreak occurs.
@@ -36,7 +36,7 @@ public class Epidemic{
       dis.spread(increment);
     }
   }
-
+**/
   // TO-DO
   /*
     Spreads a disease to a neighbor city using its City object
