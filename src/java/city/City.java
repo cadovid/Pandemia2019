@@ -58,7 +58,8 @@ public class City{
   public static Hashtable<String, City> parseCities(String datafile, Hashtable<String, Disease> diseases){
     Hashtable<String, City> cities = new Hashtable<String, City>();
 
-    try(BufferedReader br = new BufferedReader(new FileReader(datafile))){
+    try{
+      BufferedReader br = new BufferedReader(new FileReader(datafile));
       String line;
       String[] city_data;
       String city_name;
@@ -105,6 +106,8 @@ public class City{
           }
         }
       }
+      
+      br.close();
     }
     catch(Exception e){
       if(Options.LOG.ordinal() >= CustomTypes.LogLevel.CRITICAL.ordinal())

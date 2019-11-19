@@ -44,8 +44,8 @@ public class Board{
   public Board(String datapath, Hashtable<String, City> valid_cities){
 
     //Read csv lines creating stream from file
-    try(BufferedReader br = new BufferedReader(new FileReader(datapath))){
-
+    try{
+      BufferedReader br = new BufferedReader(new FileReader(datapath));
       // Reads map data from subsequent lines (Must follow the expected map format)
       // Layout must be regular! (same number of columns across all rows)
       String line;
@@ -127,6 +127,8 @@ public class Board{
         System.err.println(e.getMessage());
         System.exit(0);
       }
+      
+      br.close();
     }
     catch(Exception e){
       if(Options.LOG.ordinal() >= CustomTypes.LogLevel.CRITICAL.ordinal())

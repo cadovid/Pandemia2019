@@ -58,7 +58,8 @@ public class Disease{
   public static Hashtable<String, Disease> parseDis(String datafile){
 
     Hashtable<String, Disease> diseases = new Hashtable<String, Disease>();
-    try(BufferedReader br = new BufferedReader(new FileReader(datafile))){
+    try{
+      BufferedReader br = new BufferedReader(new FileReader(datafile));
       String line;
       String[] dis_data;
       String dis_name;
@@ -109,6 +110,8 @@ public class Disease{
           dis.dump();
         }
       }
+      
+      br.close();
     }
     catch(Exception e){
       if(Options.LOG.ordinal() >= CustomTypes.LogLevel.CRITICAL.ordinal())

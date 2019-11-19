@@ -14,7 +14,7 @@ public final class Options{
   public static final int PLAYER_DRAW_CARDS = 2;
 
   // Program options
-  public static final CustomTypes.LogLevel LOG = CustomTypes.LogLevel.ALL;
+  public static final CustomTypes.LogLevel LOG = CustomTypes.LogLevel.CRITICAL;
 
 
   // Private constructor. This class shouldn't be initialized

@@ -50,7 +50,8 @@ public class Player{
   public static Hashtable<String, Player> parsePlayers(String datafile, Hashtable<String, Role> roles, Hashtable<String, City> cities){
     Hashtable<String, Player> players = new Hashtable<String, Player>();
 
-    try(BufferedReader br = new BufferedReader(new FileReader(datafile))){
+    try{
+      BufferedReader br = new BufferedReader(new FileReader(datafile));
       String line;
       String[] player_data;
       String player_alias;
@@ -103,7 +104,8 @@ public class Player{
         if(Options.LOG.ordinal() >= CustomTypes.LogLevel.DUMP.ordinal())
           player.dump();
       }
-
+      
+      br.close();
     }
     catch(Exception e){
       System.out.printf("CRITICAL: Exception while parsing\n");

@@ -38,7 +38,8 @@ public class Role{
   public static Hashtable<String, Role> parseRoles(String datafile){
     Hashtable<String, Role> roles = new Hashtable<String, Role>();
 
-    try(BufferedReader br = new BufferedReader(new FileReader(datafile))){
+    try{
+      BufferedReader br = new BufferedReader(new FileReader(datafile));
       String line;
       String[] role_data;
       String role_name;

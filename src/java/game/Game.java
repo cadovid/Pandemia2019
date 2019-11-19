@@ -7,18 +7,25 @@ import player.*;
 import dis.*;
 import city.*;
 import board.*;
-import card.Card;
+import card.*;
 import graphics.Renderer;
 import _aux.Datapaths;
 import _aux.Options;
 import _aux.CustomTypes;
 
+// Jason
+import jason.asSyntax.*;
+import jason.environment.*;
+import java.util.logging.*;
 /*
   Game class
     Contains all relevant game data and structures
     Initializes game objects (board and players), and executes game
 */
-public class Game{
+public class Game extends jason.environment.Environment{
+	
+  private Logger logger = Logger.getLogger("pandemic.mas2j."+Game.class.getName());
+	
   // GameStatus object. Contains current game relevant data
   public GameStatus gs;
 
@@ -38,7 +45,7 @@ public class Game{
   // GRA
   private Renderer render;
 
-  // TO-DO - Game cards
+  // TODO - Game cards
   /*
   public ArrayList<Card> cards_player;  // drawable cards (only those that are available)
   public ArrayList<Card> discarded_pcards;  // discarded cards
@@ -64,6 +71,8 @@ public class Game{
   */
   public void parseData(){
     this.roles = Role.parseRoles(Datapaths.role_list);
+    
+    
     this.diseases = Disease.parseDis(Datapaths.disease_list);
     this.cities = City.parseCities(Datapaths.city_list, this.diseases);
     this.players = Player.parsePlayers(Datapaths.player_list, this.roles, this.cities);
@@ -74,50 +83,102 @@ public class Game{
     this.n_players = this.players.size();
   }
   
-  // TO-DO
-  /*
-   * ¿Any security check? As number of cards, disease color,....
-   * Change current player left actions.
-   */
-  
-  /*
-  discoverCure
-    Remove to the player hands needed cards and set in the selected disease the attribute cure to True
-   */
-  public void discoverCure(Player player, String diseaseAlias, ArrayList<Card> cityCards) {
-	  Disease disease = this.diseases.get(diseaseAlias);
-	  for(int i = 0; i<cityCards.size(); i++) {
-		  player.removeCard(cityCards.get(i));
-		  //discarded_pcards.add(c);
-	  }
-	  disease.setCure(true);
+  @Override
+  // executeAction triggers whenever an agent fires an action
+  // Specific actions should be filtered to update the environment consequently
+  public boolean executeAction(String agName, Structure action){
+	logger.info("executing: "+action+", but not implemented!");
+	return false;
+  }
+
+  // Called before the end of MAS execution
+  @Override
+  public void stop() {
+    super.stop();
+  }
+
+  // Called before the MAS execution with the args informed in .mas2j
+  @Override
+  public void init(String[] args){
+	  // Needs to communicate number of players to supplicant. When all players are ready, supplicant should remove the init belief
 	  
+	  // Dummy
+	  //addPercept("supplicant", Literal.parseLiteral("nPlayers(" + this.n_players + ")"));
+	  addPercept("supplicant", Literal.parseLiteral("nPlayers(" + this.n_players + ")"));
+	  
+	  // Adds initial percept to supplicant agent
+	  addPercept("supplicant", Literal.parseLiteral("init"));
+	  
+	    logger.info("Starting game\n");
+	    // Initializes game
+	    
+	    // Since class is extended from environment, is already initialized, hence there's no need to create the object
+	    //Game g = new Game();
+	    Board board = new Board(Datapaths.map, this.cities);
+	    GameStatus gs = new GameStatus(board);
+
+	    // TODO
+	    /*
+	      Settle initial game configuration. Needs to implement:
+	        * Initial diseases (draw infection cards as per the real game)
+	        * Player hands (draw deck cards)
+	        * Player order (hand-dependant, as per the real game)
+	    */
+
+	    // Dummy. Method to resolve player order. Should be redefined.
+	    this.p_order = Player.resolvePlayerOrder(this.players);
+
+	    // GRA - Initializes renderer
+	    this.render = new Renderer(this, null, board);
+	    logger.info("Ready");
   }
   
-  // TO-DO
-  /*
-   * When cards_player will be implemented, uncomment the function
-   */
-  
-  /*
-  drawCards
-    Add to the player's hand the selected number of cards from cards_players list
-    Return true if are enough cards, false otherwise
-   */
-  /*
-  public boolean drawCards(Player player, int cardsToDraw) {
-	  if (cards_player.size() >= cardsToDraw) {
-		  for(int i = 0; i < cardsToDraw; i++) {
-			  player.addCard(cards_player.remove(0));
+	//TODO
+	/*
+	* Any security check? As number of cards, disease color,....
+	* Change current player left actions.
+	*/
+	
+	/*
+	discoverCure
+	 Remove to the player hands needed cards and set in the selected disease the attribute cure to True
+	*/
+	public void discoverCure(Player player, String diseaseAlias, ArrayList<Card> cityCards) {
+		  Disease disease = this.diseases.get(diseaseAlias);
+		  for(int i = 0; i<cityCards.size(); i++) {
+			  player.removeCard(cityCards.get(i));
+			  //discarded_pcards.add(c);
 		  }
-		  return true;
-	  }else {
-		  return false;
-	  }
-  }
-*/
+		  disease.setCure(true);
+		  
+	}
+	
+	//TODO
+	/*
+	* When cards_player has been implemented, uncomment the function
+	*/
+	
+	/*
+	drawCards
+	 Add to the player's hand the selected number of cards from cards_players list
+	 Return true if are enough cards, false otherwise
+	*/
+	/*
+	public boolean drawCards(Player player, int cardsToDraw) {
+		  if (cards_player.size() >= cardsToDraw) {
+			  for(int i = 0; i < cardsToDraw; i++) {
+				  player.addCard(cards_player.remove(0));
+			  }
+			  return true;
+		  }else {
+			  return false;
+		  }
+	}
+	*/
   
-  public static void main(String args[]){
+  
+  // OLD INITIALIZATION; ONLY AS A REFERENCE!: main class is useless if using game as environment. Initialization must be done in the init method...
+  public static void OLDmain(String args[]){
 
     // Initializes game
     Game g = new Game();
