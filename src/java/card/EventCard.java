@@ -5,7 +5,7 @@ public class EventCard extends Card {
 	public EventCard() {
 
 		// RAWR - Super class has neither city nor color attributes
-		//this.city = null;
-		//this.color = null;
+		// this.city = null;
+		// this.color = null;
 	}
 }

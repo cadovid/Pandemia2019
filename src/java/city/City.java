@@ -15,157 +15,216 @@ import _aux.CustomTypes;
   City class
     Represents a city object. Contains relevant information about its status
 */
-public class City{
+public class City {
 
-  // Static info. Once initialized, it should remain untouched
-  public String alias;
-  public String name;
-  private Disease local_disease;
-  private Cell cell;
-  private ArrayList<City> neighbors;  // Adjacent cities. Should be initialized when instatiating the Board object
+	// Static info. Once initialized, it should remain untouched
+	public String alias;
+	public String name;
+	private Disease local_disease;
+	private Cell cell;
+	private ArrayList<City> neighbors; // Adjacent cities. Should be initialized when instatiating the Board object
 
-  // Dynamic data. Can be changed through gameplay
-  private ArrayList<Player> players = new ArrayList<Player>();  // Players in the city
-  private ArrayList<Epidemic> epidemics = new ArrayList<Epidemic>();  // Active diseases
-  private boolean can_research = false;
+	// Dynamic data. Can be changed through gameplay
+	private ArrayList<Player> players = new ArrayList<Player>(); // Players in the city
+	private ArrayList<Epidemic> epidemics = new ArrayList<Epidemic>(); // Active diseases
+	/**
+	 * true if there is a investigation centre and false otherwise.
+	 */
+	private boolean can_research = false;
 
-  // Constructor
-  public City(String name, String alias, Disease ldis){
-    this.name = name;
-    this.alias = alias;
-    this.local_disease = ldis;
-  }
+	// Constructor
+	public City(String name, String alias, Disease ldis) {
+		this.name = name;
+		this.alias = alias;
+		this.local_disease = ldis;
+	}
 
-  // Setters/Getters
-  public void setCell(Cell c){
-    this.cell = c;
-  }
+	// Setters/Getters
+	public void setCell(Cell c) {
+		this.cell = c;
+	}
 
-  /*
-    parseCities
-      Initializes cities from a datafile.
-      Expected format (csv):
-        <City full name>;<alias>;<local disease alias>;
+	/*
+	 * parseCities Initializes cities from a datafile. Expected format (csv): <City
+	 * full name>;<alias>;<local disease alias>;
+	 * 
+	 * Alias must be unique. It'll be used as identifier.
+	 ** 
+	 * PARAMETERS: datafile: String; path to file. diseases: Disease list; list
+	 * containing existing diseases. Will be used to maintain coherence between game
+	 * objects
+	 ** 
+	 * RETURNS a map of cities (key:alias, value:City)
+	 */
+	public static Hashtable<String, City> parseCities(String datafile, Hashtable<String, Disease> diseases) {
+		Hashtable<String, City> cities = new Hashtable<String, City>();
 
-      Alias must be unique. It'll be used as identifier.
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(datafile));
+			String line;
+			String[] city_data;
+			String city_name;
+			String city_alias;
+			String city_ldis_alias;
+			Disease city_ldis;
+			boolean disease_exists = false;
 
-      **PARAMETERS:
-        datafile: String; path to file.
-        diseases: Disease list; list containing existing diseases. Will be used to maintain coherence between game objects
+			// Reads city data from subsequent lines (Must follow the expected disease
+			// format)
+			while ((line = br.readLine()) != null) {
+				city_data = line.split(";");
 
-      **RETURNS a map of cities (key:alias, value:City)
-  */
-  public static Hashtable<String, City> parseCities(String datafile, Hashtable<String, Disease> diseases){
-    Hashtable<String, City> cities = new Hashtable<String, City>();
+				// Gets data from splitted line elements
+				city_name = city_data[0];
+				city_alias = city_data[1];
+				city_ldis_alias = city_data[2];
 
-    try{
-      BufferedReader br = new BufferedReader(new FileReader(datafile));
-      String line;
-      String[] city_data;
-      String city_name;
-      String city_alias;
-      String city_ldis_alias;
-      Disease city_ldis;
-      boolean disease_exists = false;
+				// Tries to create City object
+				if (cities.containsKey(city_alias)) {
+					if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
+						System.out.printf("[City] WARN: City \"%s\" duplicated. Ignoring...\n", city_alias);
 
-      // Reads city data from subsequent lines (Must follow the expected disease format)
-      while((line = br.readLine()) != null){
-        city_data = line.split(";");
+					continue;
+				} else {
 
-        // Gets data from splitted line elements
-        city_name = city_data[0];
-        city_alias = city_data[1];
-        city_ldis_alias = city_data[2];
+					// Checks that the specified local disease exists
+					if (!diseases.containsKey(city_ldis_alias)) {
+						if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
+							System.out.printf(
+									"[City] WARN: Specified unkonw disease \"%s\" for city \"%s\". Ignoring...\n",
+									city_ldis_alias, city_alias);
+						continue;
+					}
 
-        // Tries to create City object
-        if(cities.containsKey(city_alias)){
-          if(Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
-            System.out.printf("[City] WARN: City \"%s\" duplicated. Ignoring...\n", city_alias);
+					// Creates City object and adds it to the dictionary
+					else {
+						City city = new City(city_name, city_alias, diseases.get(city_ldis_alias));
+						cities.put(city_alias, city);
 
-          continue;
-        }
-        else{
+						if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
+							System.out.printf("[City] INFO: New city generated\n");
 
-          // Checks that the specified local disease exists
-          if(!diseases.containsKey(city_ldis_alias)){
-            if(Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
-              System.out.printf("[City] WARN: Specified unkonw disease \"%s\" for city \"%s\". Ignoring...\n", city_ldis_alias, city_alias);
-            continue;
-          }
+						if (Options.LOG.ordinal() >= CustomTypes.LogLevel.DUMP.ordinal())
+							city.dump();
+					}
+				}
+			}
 
-          // Creates City object and adds it to the dictionary
-          else{
-            City city = new City(city_name, city_alias, diseases.get(city_ldis_alias));
-            cities.put(city_alias, city);
+			br.close();
+		} catch (Exception e) {
+			if (Options.LOG.ordinal() >= CustomTypes.LogLevel.CRITICAL.ordinal())
+				System.out.printf("CRITICAL: Exception while parsing\n");
 
-            if(Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
-              System.out.printf("[City] INFO: New city generated\n");
+			System.err.println(e.getMessage());
+			System.exit(0);
+		}
 
-            if(Options.LOG.ordinal() >= CustomTypes.LogLevel.DUMP.ordinal())
-              city.dump();
-          }
-        }
-      }
-      
-      br.close();
-    }
-    catch(Exception e){
-      if(Options.LOG.ordinal() >= CustomTypes.LogLevel.CRITICAL.ordinal())
-        System.out.printf("CRITICAL: Exception while parsing\n");
+		return cities;
+	}
 
-      System.err.println(e.getMessage());
-      System.exit(0);
-    }
+	// Setters/getters
 
-    return cities;
-  }
+	// Returns local disease alias
+	public Disease getLocalDisease() {
+		return this.local_disease;
+	}
 
-  //Setters/getters
+	public String getLocalDiseaseAlias() {
+		return this.local_disease.alias;
+	}
 
-  // Returns local disease alias
-  public String getLocalDisease(){
-    return this.local_disease.alias;
-  }
+	// Retrieves list of active epidemics
+	public ArrayList<Epidemic> getEpidemics() {
+		return this.epidemics;
+	}
 
-  // Retrieves list of active epidemics
-  public ArrayList<Epidemic> getEpidemics(){
-    return this.epidemics;
-  }
+	// Retrieves list of players in the city
+	public ArrayList<Player> getPlayers() {
+		return this.players;
+	}
 
-  // Retrieves list of players in the city
-  public ArrayList<Player> getPlayers(){
-    return this.players;
-  }
+	/**
+	 * Get method for neighbors attribute.
+	 * 
+	 * @return ArrayList<City>: The city neighbors.
+	 */
+	public ArrayList<City> getNeighbors() {
+		return this.neighbors;
+	}
 
-  // Sets adjacent cities
-  public void setNeighbors(ArrayList<City> neighs){
-    this.neighbors = neighs;
-  }
+	// Sets adjacent cities
+	public void setNeighbors(ArrayList<City> neighs) {
+		this.neighbors = neighs;
+	}
 
-  // Adds an epidemic
-  public void infect(Epidemic e){
-    this.epidemics.add(e);
-  }
+	// Adds an epidemic
+	public void infect(Epidemic e) {
+		this.epidemics.add(e);
+	}
 
-  // Puts a player in the city
-  public void putPlayer(Player p){
-    this.players.add(p);
-  }
+	// Puts a player in the city
+	public void putPlayer(Player p) {
+		this.players.add(p);
+	}
 
-  // Dummy method to print city data
-  public void dump(){
-    System.out.printf(">>Printing city data (%s)\n", this.name);
-    System.out.printf(".Alias: %s\n", this.alias);
-    System.out.printf(".Local disease: %s\n", this.local_disease.name);
+	/**
+	 * Removes a player from the city.
+	 * 
+	 * @param p
+	 */
+	public void removePlayer(Player p) {
+		if (this.players.contains(p)) {
+			this.players.remove(p);
+		}
+	}
 
-    if(this.neighbors != null){
-      System.out.printf(".Adjacent cities:\n");
+	/**
+	 * Returns if there is a investigation centre
+	 * 
+	 * @return
+	 */
+	public boolean canResearch() {
+		return this.can_research;
+	}
 
-      for(City adj_city : this.neighbors){
-        System.out.printf("..%d\n", adj_city.name);
-      }
-    }
+	/**
+	 * Puts a investigation centre in the city.
+	 */
+	public void putInvestigationCentre() {
+		this.can_research = true;
+	}
 
-    System.out.println();
-  }
+	/**
+	 * Returns the epidemic of a given disease.
+	 */
+	public Epidemic getEpidemic(Disease disease) {
+
+		for (Epidemic epidemic : this.epidemics) {
+			if (epidemic.dis.equals(disease)) {
+				return epidemic;
+			}
+		}
+		Epidemic epidemic = new Epidemic(disease, this, 0);
+		this.epidemics.add(epidemic);
+		disease.getEpidemics().add(epidemic);
+
+		return epidemic;
+	}
+
+	// Dummy method to print city data
+	public void dump() {
+		System.out.printf(">>Printing city data (%s)\n", this.name);
+		System.out.printf(".Alias: %s\n", this.alias);
+		System.out.printf(".Local disease: %s\n", this.local_disease.name);
+
+		if (this.neighbors != null) {
+			System.out.printf(".Adjacent cities:\n");
+
+			for (City adj_city : this.neighbors) {
+				System.out.printf("..%d\n", adj_city.name);
+			}
+		}
+
+		System.out.println();
+	}
 }

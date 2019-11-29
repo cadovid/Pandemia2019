@@ -1,9 +1,26 @@
 package card;
 
+import city.City;
+import dis.Disease;
+
 /*
-  TO-DO Card class
+  TODO Card class
     Defines a game card
 */
-public class Card{
+public abstract class Card {
+
+	protected City city;
+
+	public City getCity() {
+		return city;
+	}
+
+	public void setCity(City city) {
+		this.city = city;
+	}
+
+	public Disease getDisease() {
+		return this.city.getLocalDisease();
+	}
 
 }
