@@ -118,31 +118,40 @@ public class Disease {
 
 		return diseases;
 	}
-	
-	 public void treatDesease(Epidemic e, Player current_player){
-		  if (cure == true || current_player.getRole().alias.equals("doctor")){
-			  heal(e.spread_level);
-			  e.spread_level = 0;
-			  // TODO: Borrar objeto epidemia (no tiene sentido, porque epidemia debería ser un atributo de ciudad, no un objeto). 
-		  }
-		  else{
-			  heal(1);
-			  e.spread_level -= 1;
-		  }
-	  }
-		
-	 
-	  public void infectEpidemic(/*Game g*/){
-		  // AUMENTAR EN UNO EL CONTADOR DE EPIDEMIAS. 
-		  /*
-		  Card c = g.cards_infection.pop(g.cards_infection.size()-1);
-		  infect(c.city,3); // Función grupo 4
-		  g.discarded_icards.add(c); 
-		  while (g.discarded_icards != null){
-			  g.cards_infection.add(0, g.discarded_icards.pop((int)(Math.random()*discarded_icards.size()))); 
-		  }
-		  */
-	  }
+
+	/**
+	 * Returns true when an action should be consumed (there is no cure or the
+	 * player is not doctor)
+	 * @param e
+	 * @param current_player
+	 * @return
+	 */
+	public boolean treatDesease(Epidemic e, Player current_player) {
+		if (cure == true || current_player.getRole().alias.equals("doctor")) {
+			heal(e.spread_level);
+			e.spread_level = 0;
+			// TODO: Borrar objeto epidemia (no tiene sentido, porque epidemia debería ser
+			// un atributo de ciudad, no un objeto).
+		} else {
+			heal(1);
+			e.spread_level -= 1;
+		}
+		if (cure && current_player.getRole().alias.equals("doctor")) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	public void infectEpidemic(/* Game g */) {
+		// AUMENTAR EN UNO EL CONTADOR DE EPIDEMIAS.
+		/*
+		 * Card c = g.cards_infection.pop(g.cards_infection.size()-1); infect(c.city,3);
+		 * // Función grupo 4 g.discarded_icards.add(c); while (g.discarded_icards !=
+		 * null){ g.cards_infection.add(0,
+		 * g.discarded_icards.pop((int)(Math.random()*discarded_icards.size()))); }
+		 */
+	}
 
 	// Weakens disease by increasing spreads_left counter by "n_heals"
 	public void heal(int n_heals) {

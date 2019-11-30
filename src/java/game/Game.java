@@ -26,15 +26,15 @@ import java.util.logging.*;
 public class Game extends jason.environment.Environment {
 
 	private Logger logger = Logger.getLogger("pandemic.mas2j." + Game.class.getName());
-	
+
 	public static final Term MOVE_ADJACENT = Literal.parseLiteral("moveAdjacent(direction)");
-    public static final Term DIRECT_FLIGHT = Literal.parseLiteral("directFlight(dest)");
-    public static final Term CHARTER_FLIGHT = Literal.parseLiteral("charterFlight(dest)");
-    public static final Term AIR_BRIDGE = Literal.parseLiteral("airBridge(dest)");
-    public static final Term BUILD_CI = Literal.parseLiteral("buildCI()");
-    public static final Term TREAT_DISEASE = Literal.parseLiteral("treatDisease(disease)");
-    public static final Term SHARE_INFO = Literal.parseLiteral("shareInfo(player)");
-    public static final Term DISCOVER_CURE = Literal.parseLiteral("discoverCure(disease)");
+	public static final Term DIRECT_FLIGHT = Literal.parseLiteral("directFlight(dest)");
+	public static final Term CHARTER_FLIGHT = Literal.parseLiteral("charterFlight(dest)");
+	public static final Term AIR_BRIDGE = Literal.parseLiteral("airBridge(dest)");
+	public static final Term BUILD_CI = Literal.parseLiteral("buildCI()");
+	public static final Term TREAT_DISEASE = Literal.parseLiteral("treatDisease(disease)");
+	public static final Term SHARE_INFO = Literal.parseLiteral("shareInfo(player)");
+	public static final Term DISCOVER_CURE = Literal.parseLiteral("discoverCure(disease)");
 
 	// GameStatus object. Contains current game relevant data
 	public GameStatus gs;
@@ -91,127 +91,138 @@ public class Game extends jason.environment.Environment {
 		this.n_cities = this.cities.size();
 		this.n_players = this.players.size();
 	}
-	
+
 	@Override
-    public boolean executeAction(String ag, Structure action) {
-        logger.info(ag+" doing: "+ action);
-        boolean consumed_action = false;
-        try {
-            if (action.equals(MOVE_ADJACENT)) {
-            	// TODO: moveAdjacent
-                // if (moveAdjacent((Direction)((NumberTerm)action.getTerm(0)).solve())) {
-            	// 		consumed_action = true;
-            	// } else {
-            	// 		return false;
-            	// }
-            } else if (action.equals(DIRECT_FLIGHT)) {
-                City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-                if (gs.cp.directFlight(dest)) {
-                	consumed_action = true;
-                }
-            } else if (action.equals(CHARTER_FLIGHT)) {
-                City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-                if (gs.cp.charterFlight(dest)) {
-                	consumed_action = true;
-                }                
-            } else if (action.equals(AIR_BRIDGE)) {
-                City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-                if (gs.cp.airBridge(dest)) {
-                	consumed_action = true;
-                }
-            } else if (action.equals(BUILD_CI)) {
-                gs.cp.getCity().putInvestigationCentre();
-                consumed_action = true;
-            } else if (action.equals(TREAT_DISEASE)) {
-            	String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-                // TODO: treatDisease() with the Epidemic object or the final decision to handle this
-                consumed_action = true;
-            } else if (action.equals(SHARE_INFO)) {
-            	String player_alias = ((StringTerm) action.getTerm(0)).toString();
-                // TODO: shareInfo(gs.cp, player_alias);
-                consumed_action = true;
-            } else if (action.equals(DISCOVER_CURE)) {
-            	String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-                // TODO: discoverCure checks
-                if (discoverCure(dis_alias)) {
-                	consumed_action = true;
-                } else {
-                	return false;
-                }
-            } else {
-                return false;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        if (consumed_action) {
-        	gs.p_actions_left--;
-        }
-        // It should never be lower than 0, but in case
-        if (gs.p_actions_left <= 0) {
-        	gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
-        	gs.cp = nextPlayer(gs.cp);
-        }
+	public boolean executeAction(String ag, Structure action) {
+		logger.info(ag + " doing: " + action);
+		boolean consumed_action = false;
+		try {
+			if (action.equals(MOVE_ADJACENT)) {
+				// TODO: moveAdjacent
+				// if (moveAdjacent((Direction)((NumberTerm)action.getTerm(0)).solve())) {
+				// consumed_action = true;
+				// automaticDoctorDiseasesTreatment();
+				// } else {
+				// return false;
+				// }
+			} else if (action.equals(DIRECT_FLIGHT)) {
+				City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
+				if (gs.cp.directFlight(dest)) {
+					consumed_action = true;
+					automaticDoctorDiseasesTreatment();
+				}
+			} else if (action.equals(CHARTER_FLIGHT)) {
+				City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
+				if (gs.cp.charterFlight(dest)) {
+					consumed_action = true;
+					automaticDoctorDiseasesTreatment();
+				}
+			} else if (action.equals(AIR_BRIDGE)) {
+				City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
+				if (gs.cp.airBridge(dest)) {
+					consumed_action = true;
+					automaticDoctorDiseasesTreatment();
+				}
+			} else if (action.equals(BUILD_CI)) {
+				gs.cp.getCity().putInvestigationCentre();
+				consumed_action = true;
+			} else if (action.equals(TREAT_DISEASE)) {
+				String dis_alias = ((StringTerm) action.getTerm(0)).toString();
+				// TODO: treatDisease() with the Epidemic object or the final decision to handle
+				// this
+				// if (treatDisease() {
+				// consumed_action = true;
+				// } else {
+				// consumed_action = false;
+				// }
+			} else if (action.equals(SHARE_INFO)) {
+				String player_alias = ((StringTerm) action.getTerm(0)).toString();
+				// TODO: shareInfo(gs.cp, player_alias);
+				consumed_action = true;
+			} else if (action.equals(DISCOVER_CURE)) {
+				String dis_alias = ((StringTerm) action.getTerm(0)).toString();
+				// TODO: discoverCure checks
+				if (discoverCure(dis_alias)) {
+					consumed_action = true;
+				} else {
+					return false;
+				}
+			} else {
+				return false;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-        updatePercepts();
+		if (consumed_action) {
+			gs.p_actions_left--;
+		}
+		// It should never be lower than 0, but in case
+		if (gs.p_actions_left <= 0) {
+			gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
+			gs.cp = nextPlayer(gs.cp);
+		}
 
-        try {
-            Thread.sleep(200);
-        } catch (Exception e) {}
-        informAgsEnvironmentChanged();
-        return true;
-    }
-	
-	/** creates the agents perception*/
-    void updatePercepts() {
-        clearPercepts();
-        
-        // All percepts are added to all agents except the remaining actions,
-        // that depends on the agent
-        for (Player p : players.values()) {
-        	if (gs.cp.equals(p)) {
-        		addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));
-        	} else {
-        		addPercept(p.alias, Literal.parseLiteral("left_actions(" + 0 + ")"));
-        	}
-        }
-        
-        // TODO: percepts for all agents
-        addPercept(Literal.parseLiteral(""));
-    }
-    
-    /**
-     * Returns the next player in function of the current player.
-     * @param Player: cp, the current player.
-     * @return Player: the next player.
-     */
-    public Player nextPlayer(Player cp) {
-    	boolean current_found = false;
-    	String next_alias = null;
-    	Player next_player = null;
-    	for (String alias : p_order) {
-    		if (current_found) {
-    			next_alias = alias; 
-    		}
-    		if (alias.equals(cp.alias)) {
-    			current_found = true;
-    		}
-    	}
-    	// The next one is the first player
-    	if (next_alias == null && current_found) {
-    		next_alias = p_order.get(0);
-    	}
-    	next_player = players.get(next_alias);
-    	
-    	return next_player;
-    }
+		updatePercepts();
+
+		try {
+			Thread.sleep(200);
+		} catch (Exception e) {
+		}
+		informAgsEnvironmentChanged();
+		return true;
+	}
+
+	/** creates the agents perception */
+	void updatePercepts() {
+		clearPercepts();
+
+		// All percepts are added to all agents except the remaining actions,
+		// that depends on the agent
+		for (Player p : players.values()) {
+			if (gs.cp.equals(p)) {
+				addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));
+			} else {
+				addPercept(p.alias, Literal.parseLiteral("left_actions(" + 0 + ")"));
+			}
+		}
+
+		// TODO: percepts for all agents
+		addPercept(Literal.parseLiteral(""));
+	}
+
+	/**
+	 * Returns the next player in function of the current player.
+	 * 
+	 * @param Player: cp, the current player.
+	 * @return Player: the next player.
+	 */
+	public Player nextPlayer(Player cp) {
+		boolean current_found = false;
+		String next_alias = null;
+		Player next_player = null;
+		for (String alias : p_order) {
+			if (current_found) {
+				next_alias = alias;
+			}
+			if (alias.equals(cp.alias)) {
+				current_found = true;
+			}
+		}
+		// The next one is the first player
+		if (next_alias == null && current_found) {
+			next_alias = p_order.get(0);
+		}
+		next_player = players.get(next_alias);
+
+		return next_player;
+	}
 
 	// TODO
 	/*
 	 * ¿Any security check? As number of cards, disease color,.... Change current
-	 * player left actions. The boolean return value is to check if the call is valid
-	 * or there are missing conditions.
+	 * player left actions. The boolean return value is to check if the call is
+	 * valid or there are missing conditions.
 	 */
 
 	/*
@@ -226,6 +237,17 @@ public class Game extends jason.environment.Environment {
 		}
 		disease.setCure(true);
 		return true;
+	}
+
+	void automaticDoctorDiseasesTreatment() {
+		if (gs.cp.getRole().alias.equals("doctor")) {
+			for (Epidemic e : gs.cp.getCity().getEpidemics()) {
+				if (e.dis.cure) {
+					e.dis.heal(e.spread_level);
+					e.spread_level = 0;
+				}
+			}
+		}
 	}
 
 	// Called before the end of MAS execution
