@@ -19,7 +19,7 @@ public class GameStatus {
 	// Player data; actions left, and round status (resolving actions, drawing cards
 	// or infecting)
 	public int p_actions_left = 0; // Actions left for the current player
-	private Player cp; // Current player
+	public Player cp; // Current player
 	private CustomTypes.Round round;
 
 	// Constructor
