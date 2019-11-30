@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 import city.*;
+import player.Player;
 import _aux.Options;
 import _aux.CustomTypes;
 
@@ -118,11 +119,11 @@ public class Disease {
 		return diseases;
 	}
 	
-	 public void treatDesease(Epidemic e){
-		  if (cure == true){
+	 public void treatDesease(Epidemic e, Player current_player){
+		  if (cure == true || current_player.getRole().alias.equals("doctor")){
 			  heal(e.spread_level);
 			  e.spread_level = 0;
-			  // Borrar objeto epidemia (no tiene sentido, porque epidemia debería ser un atributo de ciudad, no un objeto). 
+			  // TODO: Borrar objeto epidemia (no tiene sentido, porque epidemia debería ser un atributo de ciudad, no un objeto). 
 		  }
 		  else{
 			  heal(1);

@@ -200,8 +200,12 @@ public class Player {
 
 		return moved;
 	}
-
+	
 	// Setters/Getters
+	public City getCity() {
+		return this.city;
+	}
+	
 	public void setCity(City c) {
 		this.city = c;
 	}

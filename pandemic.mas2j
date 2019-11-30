@@ -7,6 +7,10 @@ MAS pandemic {
 		p2;
 		p1;
 		supplicant;
+		doctor;
+		genetist;
+		op_expert;
+		analist;
 
 	aslSourcePath:
 		"src/asl";

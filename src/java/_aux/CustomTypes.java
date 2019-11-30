@@ -15,4 +15,9 @@ public final class CustomTypes {
 	public static enum LogLevel {
 		CRITICAL, WARN, INFO, DUMP, ALL,
 	}
+	
+	// Direction for adjacent moves
+	public static enum Direction {
+		UP, DOWN, LEFT, RIGHT
+	}
 }
