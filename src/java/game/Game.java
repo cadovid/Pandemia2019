@@ -236,6 +236,7 @@ public class Game extends jason.environment.Environment {
 			// discarded_pcards.add(c);
 		}
 		disease.setCure(true);
+		automaticDoctorDiseasesTreatment();
 		return true;
 	}
 
