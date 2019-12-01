@@ -12,6 +12,7 @@ import graphics.Renderer;
 import _aux.Datapaths;
 import _aux.Options;
 import _aux.CustomTypes;
+import _aux.CustomTypes.Direction;
 import _aux.CustomTypes.Round;
 
 // Jason
@@ -99,13 +100,12 @@ public class Game extends jason.environment.Environment {
 		try {
 			if (gs.round == Round.ACT) {
 				if (action.equals(MOVE_ADJACENT)) {
-					// TODO: moveAdjacent
-					// if (moveAdjacent((Direction)((NumberTerm)action.getTerm(0)).solve())) {
-					// consumed_action = true;
-					// automaticDoctorDiseasesTreatment();
-					// } else {
-					// return false;
-					// }
+					if (moveAdjacent(gs.cp, Direction.values()[((int) ((NumberTerm) action.getTerm(0)).solve())])) {
+						consumed_action = true;
+						automaticDoctorDiseasesTreatment();
+					} else {
+						return false;
+					}
 				} else if (action.equals(DIRECT_FLIGHT)) {
 					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
 					if (directFlight(gs.cp, dest)) {
@@ -125,8 +125,10 @@ public class Game extends jason.environment.Environment {
 						automaticDoctorDiseasesTreatment();
 					}
 				} else if (action.equals(BUILD_CI)) {
-					gs.cp.getCity().putInvestigationCentre();
-					consumed_action = true;
+					if (putInvestigationCentre(gs.cp.getCity())) {
+						consumed_action = true;
+					}
+
 				} else if (action.equals(TREAT_DISEASE)) {
 					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
 					// TODO: treatDisease() with the Epidemic object or the final decision to handle
@@ -365,6 +367,18 @@ public class Game extends jason.environment.Environment {
 		return true;
 	}
 
+	public boolean moveAdjacent(Player current_player, Direction destination) {
+		boolean moved = false;
+
+		if (current_player.getCity().getNeighbors().get(destination) != null) {
+			current_player.getCity().removePlayer(current_player);
+			current_player.setCity(current_player.getCity().getNeighbors().get(destination));
+			current_player.getCity().putPlayer(current_player);
+			moved = true;
+		}
+		return moved;
+	}
+
 	/**
 	 * Flies to the destination city discarding one card of the hand of that city.
 	 * 
@@ -427,6 +441,19 @@ public class Game extends jason.environment.Environment {
 		return moved;
 	}
 
+	/**
+	 * Puts a investigation centre in the city.
+	 */
+	public boolean putInvestigationCentre(City city) {
+		if (gs.current_research_centers < Options.MAX_RESEARCH_CENTERS - 1) {
+			city.can_research = true;
+			gs.current_research_centers++;
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	void automaticDoctorDiseasesTreatment() {
 		if (gs.cp.getRole().alias.equals("doctor")) {
 			for (Epidemic e : gs.cp.getCity().getEpidemics()) {
@@ -459,7 +486,7 @@ public class Game extends jason.environment.Environment {
 			epidemic.spread_level = Options.MAX_SPREADS_PER_CITY;
 
 			// Expands to adjacent cities
-			for (City neigh : city.getNeighbors()) {
+			for (City neigh : city.getNeighbors().values()) {
 				infect(neigh, dis);
 			}
 		} else {
@@ -467,20 +494,20 @@ public class Game extends jason.environment.Environment {
 			epidemic.spread_level = epidemic.spread_level + 1;
 		}
 	}
-	
+
 	/*
 	 * Incrementa el nivel de epidemia con respecto al array de niveles
 	 */
 	public boolean increaseInfectionLevel() {
-		  boolean increased = false;
-		  
-		  if(gs.current_infection_level < gs.infection_levels.length) {
-			  gs.current_infection_level++;
-			  increased = true;
-		  }
-		  
-		  return increased;
-	  }
+		boolean increased = false;
+
+		if (gs.current_infection_level < gs.infection_levels.length) {
+			gs.current_infection_level++;
+			increased = true;
+		}
+
+		return increased;
+	}
 
 	// OLD INITIALIZATION; ONLY AS A REFERENCE!: main class is useless if using game
 	// as environment. Initialization must be done in the init method...
