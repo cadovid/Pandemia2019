@@ -122,6 +122,7 @@ public class Disease {
 	/**
 	 * Returns true when an action should be consumed (there is no cure or the
 	 * player is not doctor)
+	 * 
 	 * @param e
 	 * @param current_player
 	 * @return

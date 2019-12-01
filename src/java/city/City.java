@@ -20,7 +20,7 @@ public class City {
 	// Static info. Once initialized, it should remain untouched
 	public String alias;
 	public String name;
-	private Disease local_disease;
+	public Disease local_disease;
 	private Cell cell;
 	private ArrayList<City> neighbors; // Adjacent cities. Should be initialized when instatiating the Board object
 

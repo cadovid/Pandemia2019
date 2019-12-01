@@ -6,7 +6,6 @@ import java.io.FileReader;
 
 import city.City;
 import card.*;
-import game.*;
 import _aux.Options;
 import _aux.CustomTypes;
 
@@ -18,8 +17,7 @@ public class Player {
 	public String alias;
 	private City city;
 	private Role prole;
-	private ArrayList<Card> hand = new ArrayList<Card>(); // Player card hand. Hashtable? (might be useful to map the
-															// cards by a unique id)
+	private HashMap<String, CityCard> hand = new HashMap<String, CityCard>();
 
 	// Constructors
 	public Player(String alias) {
@@ -147,7 +145,7 @@ public class Player {
 	 */
 	public boolean directFlight(City destination) {
 		boolean moved = false;
-		for (Card card : this.hand) {
+		for (Card card : this.hand.values()) {
 			if (card.getCity() == destination) {
 				this.city.removePlayer(this);
 				this.city = destination;
@@ -169,7 +167,7 @@ public class Player {
 	 */
 	public boolean charterFlight(City destination) {
 		boolean moved = false;
-		for (Card card : this.hand) {
+		for (Card card : this.hand.values()) {
 			if (card.getCity() == this.city) {
 				this.city.removePlayer(this);
 				this.city = destination;
@@ -200,14 +198,18 @@ public class Player {
 
 		return moved;
 	}
-	
+
 	// Setters/Getters
 	public City getCity() {
 		return this.city;
 	}
-	
+
 	public void setCity(City c) {
 		this.city = c;
+	}
+
+	public HashMap<String, CityCard> getHand() {
+		return this.hand;
 	}
 
 	public void setRole(Role r) {
@@ -221,12 +223,12 @@ public class Player {
 		return this.prole;
 	}
 
-	public void removeCard(Card c) {
+	public void removeCard(String c) {
 		this.hand.remove(c);
 	}
 
-	public void addCard(Card c) {
-		this.hand.add(c);
+	public void addCard(CityCard c) {
+		this.hand.put(c.getCity().alias, c);
 	}
 
 	// Dummy method to print disease data

@@ -12,6 +12,7 @@ import graphics.Renderer;
 import _aux.Datapaths;
 import _aux.Options;
 import _aux.CustomTypes;
+import _aux.CustomTypes.Round;
 
 // Jason
 import jason.asSyntax.*;
@@ -35,6 +36,7 @@ public class Game extends jason.environment.Environment {
 	public static final Term TREAT_DISEASE = Literal.parseLiteral("treatDisease(disease)");
 	public static final Term SHARE_INFO = Literal.parseLiteral("shareInfo(player)");
 	public static final Term DISCOVER_CURE = Literal.parseLiteral("discoverCure(disease)");
+	public static final Term DISCARD_CARD = Literal.parseLiteral("discardCard(card)");
 
 	// GameStatus object. Contains current game relevant data
 	public GameStatus gs;
@@ -57,12 +59,10 @@ public class Game extends jason.environment.Environment {
 	// GRA
 	private Renderer render;
 
-	// TODO - Game cards
-	/*
-	 * public ArrayList<Card> cards_player; // drawable cards (only those that are
-	 * available) public ArrayList<Card> discarded_pcards; // discarded cards public
-	 * ArrayList<Card> cards_infection; public ArrayList<Card> discarded_icards;
-	 */
+	public ArrayList<CityCard> cards_player;
+	public ArrayList<CityCard> discarded_pcards = new ArrayList<CityCard>(); // discarded cards public
+	public ArrayList<CityCard> cards_infection;
+	public ArrayList<CityCard> discarded_icards = new ArrayList<CityCard>();
 
 	// Constructor. Loads data and initializes board.
 	public Game() {
@@ -74,6 +74,59 @@ public class Game extends jason.environment.Environment {
 
 		if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
 			System.out.printf("[Game] INFO - Environment ready!\n");
+	}
+
+	/*
+	 * Generate and shuffle the players and infection decks.
+	 */
+	public void generateDecks(int cards_per_city, int epidemic_cards) {
+		Collection<City> setOfCities = this.cities.values();
+		for (City c : setOfCities) {
+			for (int i = 0; i < cards_per_city; i++) {
+				this.cards_player.add(new CityCard(c, false));
+				this.cards_infection.add(new CityCard(c, false));
+			}
+		}
+
+		for (int i = 0; i < epidemic_cards; i++) {
+			this.cards_player.add(new CityCard(null, true));
+		}
+
+		Collections.shuffle(this.cards_player);
+		Collections.shuffle(this.cards_infection);
+
+	}
+
+	public boolean drawPLayerCard(Player player) {
+		// Si no quedan cartas que robar, devuelve false
+		boolean enoughCards = false;
+		if (!this.cards_player.isEmpty()) {
+			enoughCards = true;
+			CityCard new_card = this.cards_player.remove(0);
+			this.discarded_pcards.add(new_card);
+			if (new_card.isEpidemic()) {
+				// TODO
+				// propagate()
+				// infect()
+				// intensify()
+			} else {
+				player.addCard(new_card);
+			}
+		}
+		return enoughCards;
+	}
+
+	public boolean drawInfectCard() {
+		// Si no quedan cartas que robar, devuelve false
+		boolean enoughCards = false;
+		if (!this.cards_infection.isEmpty()) {
+			enoughCards = true;
+			CityCard new_card = this.cards_infection.remove(0);
+			this.discarded_icards.add(new_card);
+			infect(new_card.getCity(), new_card.getDisease());
+		}
+
+		return enoughCards;
 	}
 
 	/*
@@ -97,70 +150,108 @@ public class Game extends jason.environment.Environment {
 		logger.info(ag + " doing: " + action);
 		boolean consumed_action = false;
 		try {
-			if (action.equals(MOVE_ADJACENT)) {
-				// TODO: moveAdjacent
-				// if (moveAdjacent((Direction)((NumberTerm)action.getTerm(0)).solve())) {
-				// consumed_action = true;
-				// automaticDoctorDiseasesTreatment();
-				// } else {
-				// return false;
-				// }
-			} else if (action.equals(DIRECT_FLIGHT)) {
-				City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-				if (gs.cp.directFlight(dest)) {
+			if (gs.round == Round.ACT) {
+				if (action.equals(MOVE_ADJACENT)) {
+					// TODO: moveAdjacent
+					// if (moveAdjacent((Direction)((NumberTerm)action.getTerm(0)).solve())) {
+					// consumed_action = true;
+					// automaticDoctorDiseasesTreatment();
+					// } else {
+					// return false;
+					// }
+				} else if (action.equals(DIRECT_FLIGHT)) {
+					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
+					if (gs.cp.directFlight(dest)) {
+						consumed_action = true;
+						automaticDoctorDiseasesTreatment();
+					}
+				} else if (action.equals(CHARTER_FLIGHT)) {
+					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
+					if (gs.cp.charterFlight(dest)) {
+						consumed_action = true;
+						automaticDoctorDiseasesTreatment();
+					}
+				} else if (action.equals(AIR_BRIDGE)) {
+					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
+					if (gs.cp.airBridge(dest)) {
+						consumed_action = true;
+						automaticDoctorDiseasesTreatment();
+					}
+				} else if (action.equals(BUILD_CI)) {
+					gs.cp.getCity().putInvestigationCentre();
 					consumed_action = true;
-					automaticDoctorDiseasesTreatment();
-				}
-			} else if (action.equals(CHARTER_FLIGHT)) {
-				City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-				if (gs.cp.charterFlight(dest)) {
+				} else if (action.equals(TREAT_DISEASE)) {
+					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
+					// TODO: treatDisease() with the Epidemic object or the final decision to handle
+					// this
+					// if (treatDisease() {
+					// consumed_action = true;
+					// } else {
+					// consumed_action = false;
+					// }
+				} else if (action.equals(SHARE_INFO)) {
+					String player_alias = ((StringTerm) action.getTerm(0)).toString();
+					// TODO: shareInfo(gs.cp, player_alias);
 					consumed_action = true;
-					automaticDoctorDiseasesTreatment();
-				}
-			} else if (action.equals(AIR_BRIDGE)) {
-				City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-				if (gs.cp.airBridge(dest)) {
-					consumed_action = true;
-					automaticDoctorDiseasesTreatment();
-				}
-			} else if (action.equals(BUILD_CI)) {
-				gs.cp.getCity().putInvestigationCentre();
-				consumed_action = true;
-			} else if (action.equals(TREAT_DISEASE)) {
-				String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-				// TODO: treatDisease() with the Epidemic object or the final decision to handle
-				// this
-				// if (treatDisease() {
-				// consumed_action = true;
-				// } else {
-				// consumed_action = false;
-				// }
-			} else if (action.equals(SHARE_INFO)) {
-				String player_alias = ((StringTerm) action.getTerm(0)).toString();
-				// TODO: shareInfo(gs.cp, player_alias);
-				consumed_action = true;
-			} else if (action.equals(DISCOVER_CURE)) {
-				String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-				// TODO: discoverCure checks
-				if (discoverCure(dis_alias)) {
-					consumed_action = true;
+				} else if (action.equals(DISCOVER_CURE)) {
+					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
+					// TODO: discoverCure checks
+					if (discoverCure(gs.cp, dis_alias)) {
+						consumed_action = true;
+					} else {
+						return false;
+					}
 				} else {
 					return false;
 				}
 			} else {
-				return false;
+				if (action.equals(DISCARD_CARD)) {
+					String city = ((StringTerm) action.getTerm(0)).toString();
+					gs.cp.removeCard(city);
+					// This action does never consume action, it happens in draw phase
+					consumed_action = false;
+				} else {
+					return false;
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		if (consumed_action) {
-			gs.p_actions_left--;
-		}
-		// It should never be lower than 0, but in case
-		if (gs.p_actions_left <= 0) {
-			gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
-			gs.cp = nextPlayer(gs.cp);
+		if (gs.round == Round.ACT) {
+			if (consumed_action) {
+				gs.p_actions_left--;
+			}
+			// It should never be lower than 0, but in case
+			if (gs.p_actions_left <= 0) {
+				// Set to 0 because the draw phase begins
+				gs.p_actions_left = 0;
+				gs.round = Round.STEAL;
+			}
+		} else if (gs.round == Round.STEAL) {
+			if (gs.cp.getHand().size() <= Options.PLAYER_MAX_CARDS) {
+				while (gs.round == Round.STEAL) {
+					drawPLayerCard(gs.cp);
+					gs.drawnCards++;
+					if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
+						// One card must be discarded, so the actions are delayed
+						// until the agent calls the discard action
+						break;
+					} else if (gs.drawnCards == Options.PLAYER_DRAW_CARDS) {
+						gs.round = Round.INFECT;
+						for (int i = 0; i < gs.infection_levels[gs.current_infection_level]; i++) {
+							drawInfectCard();
+						}
+						gs.round = Round.ACT;
+						gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
+						gs.cp = nextPlayer(gs.cp);
+						// For the next turn
+						gs.drawnCards = 0;
+					}
+				}
+			} else {
+				System.out.printf("[Game] WARNING: Agent must discard card but it does not call the action!!\n");
+			}
 		}
 
 		updatePercepts();
@@ -182,8 +273,37 @@ public class Game extends jason.environment.Environment {
 		for (Player p : players.values()) {
 			if (gs.cp.equals(p)) {
 				addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));
+				if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
+					addPercept(p.alias, Literal.parseLiteral("cardMustBeenDiscarded()"));
+				}
 			} else {
 				addPercept(p.alias, Literal.parseLiteral("left_actions(" + 0 + ")"));
+			}
+		}
+
+		// Percepts for cards and location of players
+		for (Player player : this.players.values()) {
+			addPercept(Literal.parseLiteral("at(" + player.alias + "," + player.alias + ")"));
+			for (String new_card : player.getHand().keySet()) {
+				addPercept(Literal.parseLiteral("hasCard(" + player.alias + "," + new_card + ")"));
+			}
+		}
+
+		// Percepts for spread level and CI per city
+		for (City city : this.cities.values()) {
+			if (city.canResearch()) {
+				addPercept(Literal.parseLiteral("hasCI(" + city.alias + ")"));
+			}
+			for (Epidemic epidemic : city.getEpidemics()) {
+				addPercept(Literal.parseLiteral("spreadLevel(" + epidemic.city_host.alias + "," + epidemic.dis.alias
+						+ "," + epidemic.spread_level + ")"));
+			}
+		}
+
+		// Percepts for disease cures
+		for (Disease dis : this.diseases.values()) {
+			if (dis.cure) {
+				addPercept(Literal.parseLiteral("isCure(" + dis.alias + ")"));
 			}
 		}
 
@@ -218,21 +338,25 @@ public class Game extends jason.environment.Environment {
 		return next_player;
 	}
 
-	// TODO
-	/*
-	 * ¿Any security check? As number of cards, disease color,.... Change current
-	 * player left actions. The boolean return value is to check if the call is
-	 * valid or there are missing conditions.
-	 */
-
 	/*
 	 * discoverCure Remove to the player hands needed cards and set in the selected
 	 * disease the attribute cure to True
 	 */
-	public boolean discoverCure(String diseaseAlias) {
+	public boolean discoverCure(Player current_player, String diseaseAlias) {
 		Disease disease = this.diseases.get(diseaseAlias);
-		for (int i = 0; i < city_cards.size(); i++) {
-			gs.cp.removeCard(city_cards.get(i));
+		ArrayList<String> to_discard = new ArrayList<String>();
+		for (Map.Entry<String, CityCard> entry : current_player.getHand().entrySet()) {
+			City city = entry.getValue().getCity();
+			if (city.local_disease.alias == diseaseAlias) {
+				to_discard.add(entry.getKey());
+				if (to_discard.size() == 5
+						|| (to_discard.size() == 4 && current_player.getRole().alias.equals("genetist"))) {
+					break;
+				}
+			}
+			for (String city_alias : to_discard) {
+				current_player.removeCard(city_alias);
+			}
 			// discarded_pcards.add(c);
 		}
 		disease.setCure(true);
@@ -280,22 +404,6 @@ public class Game extends jason.environment.Environment {
 			epidemic.spread_level = epidemic.spread_level + 1;
 		}
 	}
-
-	// TODO
-	/*
-	 * When cards_infection will be implemented, uncomment the function
-	 */
-
-	/*
-	 * DrawInfectionCards Infect the city indicated by the infection card Return
-	 * true if are enough cards, false otherwise
-	 */
-	/*
-	 * public boolean drawInfectionCards(Player player, int cardsToDraw) { if
-	 * (cards_infection.size() >= cardsToDraw) { for(int i = 0; i < cardsToDraw;
-	 * i++) { InfectionCard card = cards_infection.remove(0); infect(card.getCity(),
-	 * card.getDisease()); } return true; } else{ return false; } }
-	 */
 
 	// OLD INITIALIZATION; ONLY AS A REFERENCE!: main class is useless if using game
 	// as environment. Initialization must be done in the init method...
