@@ -10,6 +10,7 @@ import player.Player;
 import board.Cell;
 import _aux.Options;
 import _aux.CustomTypes;
+import _aux.CustomTypes.Direction;
 
 /*
   City class
@@ -22,7 +23,8 @@ public class City {
 	public String name;
 	public Disease local_disease;
 	private Cell cell;
-	private ArrayList<City> neighbors; // Adjacent cities. Should be initialized when instatiating the Board object
+	private Hashtable<Direction, City> neighbors; // Adjacent cities. Should be initialized when instatiating the Board
+													// object
 
 	// Dynamic data. Can be changed through gameplay
 	private ArrayList<Player> players = new ArrayList<Player>(); // Players in the city
@@ -30,7 +32,7 @@ public class City {
 	/**
 	 * true if there is a investigation centre and false otherwise.
 	 */
-	private boolean can_research = false;
+	public boolean can_research = false;
 
 	// Constructor
 	public City(String name, String alias, Disease ldis) {
@@ -42,6 +44,10 @@ public class City {
 	// Setters/Getters
 	public void setCell(Cell c) {
 		this.cell = c;
+	}
+
+	public Cell getCell() {
+		return this.cell;
 	}
 
 	/*
@@ -148,12 +154,12 @@ public class City {
 	 * 
 	 * @return ArrayList<City>: The city neighbors.
 	 */
-	public ArrayList<City> getNeighbors() {
+	public Hashtable<Direction, City> getNeighbors() {
 		return this.neighbors;
 	}
 
 	// Sets adjacent cities
-	public void setNeighbors(ArrayList<City> neighs) {
+	public void setNeighbors(Hashtable<Direction, City> neighs) {
 		this.neighbors = neighs;
 	}
 
@@ -220,7 +226,7 @@ public class City {
 		if (this.neighbors != null) {
 			System.out.printf(".Adjacent cities:\n");
 
-			for (City adj_city : this.neighbors) {
+			for (City adj_city : this.neighbors.values()) {
 				System.out.printf("..%d\n", adj_city.name);
 			}
 		}

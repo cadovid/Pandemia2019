@@ -7,6 +7,7 @@ import java.io.FileReader;
 import city.City;
 import _aux.Options;
 import _aux.CustomTypes;
+import _aux.CustomTypes.Direction;
 
 /*
   Board class
@@ -152,6 +153,52 @@ public class Board {
 	 * Resolves adjacent cities
 	 */
 	public static void resolveAdjacentCities(Board board, Hashtable<String, City> cities) {
+		Cell current, adjacent;
+		int pos_x, pos_y, new_x, new_y;
+		for (City city : cities.values()) {
+			Hashtable<Direction, City> local_adjacents = new Hashtable<Direction, City>();
+			current = city.getCell();
+			pos_x = current.x;
+			pos_y = current.y;
+
+			// Adjacent city, left
+			if (pos_x - 1 < 0) {
+				new_x = board.n_cols - 1;
+			} else {
+				new_x = pos_x - 1;
+			}
+			adjacent = board.map[new_x][pos_y];
+			local_adjacents.put(Direction.LEFT, adjacent.getCity());
+
+			// Adjacent city, right
+			if (pos_x + 1 >= board.n_cols) {
+				new_x = 0;
+			} else {
+				new_x = pos_x + 1;
+			}
+			adjacent = board.map[new_x][pos_y];
+			local_adjacents.put(Direction.RIGHT, adjacent.getCity());
+
+			// Adjacent city, up
+			if (pos_y - 1 < 0) {
+				new_y = board.n_rows - 1;
+			} else {
+				new_y = pos_y - 1;
+			}
+			adjacent = board.map[pos_x][new_y];
+			local_adjacents.put(Direction.UP, adjacent.getCity());
+
+			// Adjacent city, down
+			if (pos_y + 1 >= board.n_rows) {
+				new_y = 0;
+			} else {
+				new_y = pos_y + 1;
+			}
+			adjacent = board.map[pos_x][new_y];
+			local_adjacents.put(Direction.DOWN, adjacent.getCity());
+			city.setNeighbors(local_adjacents);
+		}
+
 		return;
 	}
 

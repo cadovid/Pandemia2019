@@ -12,6 +12,7 @@ public final class Options {
 	public static final int PLAYER_MAX_CARDS = 7;
 	public static final int PLAYER_MAX_ACTIONS = 4;
 	public static final int PLAYER_DRAW_CARDS = 2;
+	public static final int MAX_RESEARCH_CENTERS = 7;
 
 	// Program options
 	public static final CustomTypes.LogLevel LOG = CustomTypes.LogLevel.CRITICAL;
