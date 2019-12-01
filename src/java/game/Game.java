@@ -77,6 +77,50 @@ public class Game extends jason.environment.Environment {
 			System.out.printf("[Game] INFO - Environment ready!\n");
 	}
 
+	// Called before the end of MAS execution
+	@Override
+	public void stop() {
+		super.stop();
+	}
+
+	// Called before the MAS execution with the args informed in .mas2j
+	@Override
+	public void init(String[] args) {
+		// Needs to communicate number of players to supplicant. When all players are
+		// ready, supplicant should remove the init belief
+
+		// Dummy
+		// addPercept("supplicant", Literal.parseLiteral("nPlayers(" + this.n_players +
+		// ")"));
+		addPercept("supplicant", Literal.parseLiteral("nPlayers(" + this.n_players + ")"));
+
+		// Adds initial percept to supplicant agent
+		addPercept("supplicant", Literal.parseLiteral("init"));
+
+		logger.info("Starting game\n");
+		// Initializes game
+
+		// Since class is extended from environment, is already initialized, hence
+		// there's no need to create the object
+		// Game g = new Game();
+		Board board = new Board(Datapaths.map, this.cities);
+		GameStatus gs = new GameStatus(board);
+
+		// TODO
+		/*
+		 * Settle initial game configuration. Needs to implement: Initial diseases (draw
+		 * infection cards as per the real game) Player hands (draw deck cards) Player
+		 * order (hand-dependant, as per the real game)
+		 */
+
+		// Dummy. Method to resolve player order. Should be redefined.
+		this.p_order = Player.resolvePlayerOrder(this.players);
+
+		// GRA - Initializes renderer
+		this.render = new Renderer(this, null, board);
+		logger.info("Ready");
+	}
+
 	/*
 	 * parseData Reads data from files and generates basic structures
 	 */
@@ -463,12 +507,6 @@ public class Game extends jason.environment.Environment {
 				}
 			}
 		}
-	}
-
-	// Called before the end of MAS execution
-	@Override
-	public void stop() {
-		super.stop();
 	}
 
 	/*
