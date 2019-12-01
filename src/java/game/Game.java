@@ -318,7 +318,7 @@ public class Game extends jason.environment.Environment {
 				// TODO
 				// propagate()
 				// infect()
-				// intensify()
+				increaseInfectionLevel();
 			} else {
 				player.addCard(new_card);
 			}
@@ -467,6 +467,20 @@ public class Game extends jason.environment.Environment {
 			epidemic.spread_level = epidemic.spread_level + 1;
 		}
 	}
+	
+	/*
+	 * Incrementa el nivel de epidemia con respecto al array de niveles
+	 */
+	public boolean increaseInfectionLevel() {
+		  boolean increased = false;
+		  
+		  if(gs.current_infection_level < gs.infection_levels.length) {
+			  gs.current_infection_level++;
+			  increased = true;
+		  }
+		  
+		  return increased;
+	  }
 
 	// OLD INITIALIZATION; ONLY AS A REFERENCE!: main class is useless if using game
 	// as environment. Initialization must be done in the init method...
