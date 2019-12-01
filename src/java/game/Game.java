@@ -77,59 +77,6 @@ public class Game extends jason.environment.Environment {
 	}
 
 	/*
-	 * Generate and shuffle the players and infection decks.
-	 */
-	public void generateDecks(int cards_per_city, int epidemic_cards) {
-		Collection<City> setOfCities = this.cities.values();
-		for (City c : setOfCities) {
-			for (int i = 0; i < cards_per_city; i++) {
-				this.cards_player.add(new CityCard(c, false));
-				this.cards_infection.add(new CityCard(c, false));
-			}
-		}
-
-		for (int i = 0; i < epidemic_cards; i++) {
-			this.cards_player.add(new CityCard(null, true));
-		}
-
-		Collections.shuffle(this.cards_player);
-		Collections.shuffle(this.cards_infection);
-
-	}
-
-	public boolean drawPLayerCard(Player player) {
-		// Si no quedan cartas que robar, devuelve false
-		boolean enoughCards = false;
-		if (!this.cards_player.isEmpty()) {
-			enoughCards = true;
-			CityCard new_card = this.cards_player.remove(0);
-			this.discarded_pcards.add(new_card);
-			if (new_card.isEpidemic()) {
-				// TODO
-				// propagate()
-				// infect()
-				// intensify()
-			} else {
-				player.addCard(new_card);
-			}
-		}
-		return enoughCards;
-	}
-
-	public boolean drawInfectCard() {
-		// Si no quedan cartas que robar, devuelve false
-		boolean enoughCards = false;
-		if (!this.cards_infection.isEmpty()) {
-			enoughCards = true;
-			CityCard new_card = this.cards_infection.remove(0);
-			this.discarded_icards.add(new_card);
-			infect(new_card.getCity(), new_card.getDisease());
-		}
-
-		return enoughCards;
-	}
-
-	/*
 	 * parseData Reads data from files and generates basic structures
 	 */
 	public void parseData() {
@@ -161,19 +108,19 @@ public class Game extends jason.environment.Environment {
 					// }
 				} else if (action.equals(DIRECT_FLIGHT)) {
 					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (gs.cp.directFlight(dest)) {
+					if (directFlight(gs.cp, dest)) {
 						consumed_action = true;
 						automaticDoctorDiseasesTreatment();
 					}
 				} else if (action.equals(CHARTER_FLIGHT)) {
 					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (gs.cp.charterFlight(dest)) {
+					if (charterFlight(gs.cp, dest)) {
 						consumed_action = true;
 						automaticDoctorDiseasesTreatment();
 					}
 				} else if (action.equals(AIR_BRIDGE)) {
 					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (gs.cp.airBridge(dest)) {
+					if (airBridge(gs.cp, dest)) {
 						consumed_action = true;
 						automaticDoctorDiseasesTreatment();
 					}
@@ -228,7 +175,8 @@ public class Game extends jason.environment.Environment {
 				gs.p_actions_left = 0;
 				gs.round = Round.STEAL;
 			}
-		} else if (gs.round == Round.STEAL) {
+		}
+		if (gs.round == Round.STEAL) {
 			if (gs.cp.getHand().size() <= Options.PLAYER_MAX_CARDS) {
 				while (gs.round == Round.STEAL) {
 					drawPLayerCard(gs.cp);
@@ -339,6 +287,59 @@ public class Game extends jason.environment.Environment {
 	}
 
 	/*
+	 * Generate and shuffle the players and infection decks.
+	 */
+	public void generateDecks(int cards_per_city, int epidemic_cards) {
+		Collection<City> setOfCities = this.cities.values();
+		for (City c : setOfCities) {
+			for (int i = 0; i < cards_per_city; i++) {
+				this.cards_player.add(new CityCard(c, false));
+				this.cards_infection.add(new CityCard(c, false));
+			}
+		}
+
+		for (int i = 0; i < epidemic_cards; i++) {
+			this.cards_player.add(new CityCard(null, true));
+		}
+
+		Collections.shuffle(this.cards_player);
+		Collections.shuffle(this.cards_infection);
+
+	}
+
+	public boolean drawPLayerCard(Player player) {
+		// Si no quedan cartas que robar, devuelve false
+		boolean enoughCards = false;
+		if (!this.cards_player.isEmpty()) {
+			enoughCards = true;
+			CityCard new_card = this.cards_player.remove(0);
+			this.discarded_pcards.add(new_card);
+			if (new_card.isEpidemic()) {
+				// TODO
+				// propagate()
+				// infect()
+				// intensify()
+			} else {
+				player.addCard(new_card);
+			}
+		}
+		return enoughCards;
+	}
+
+	public boolean drawInfectCard() {
+		// Si no quedan cartas que robar, devuelve false
+		boolean enoughCards = false;
+		if (!this.cards_infection.isEmpty()) {
+			enoughCards = true;
+			CityCard new_card = this.cards_infection.remove(0);
+			this.discarded_icards.add(new_card);
+			infect(new_card.getCity(), new_card.getDisease());
+		}
+
+		return enoughCards;
+	}
+
+	/*
 	 * discoverCure Remove to the player hands needed cards and set in the selected
 	 * disease the attribute cure to True
 	 */
@@ -362,6 +363,68 @@ public class Game extends jason.environment.Environment {
 		disease.setCure(true);
 		automaticDoctorDiseasesTreatment();
 		return true;
+	}
+
+	/**
+	 * Flies to the destination city discarding one card of the hand of that city.
+	 * 
+	 * @param destination
+	 * @return true if moved and false otherwise.
+	 */
+	public boolean directFlight(Player current_player, City destination) {
+		boolean moved = false;
+		for (Card card : current_player.getHand().values()) {
+			if (card.getCity() == destination) {
+				current_player.getCity().removePlayer(current_player);
+				current_player.setCity(destination);
+				current_player.getCity().putPlayer(current_player);
+				current_player.getHand().remove(card.getCity().alias);
+				return true;
+			}
+		}
+
+		return moved;
+	}
+
+	/**
+	 * Flies to the destination city discarding one card of the hand of the current
+	 * city.
+	 * 
+	 * @param destination
+	 * @return true if moved and false otherwise.
+	 */
+	public boolean charterFlight(Player current_player, City destination) {
+		boolean moved = false;
+		for (Card card : current_player.getHand().values()) {
+			if (card.getCity() == current_player.getCity()) {
+				current_player.getCity().removePlayer(current_player);
+				current_player.setCity(destination);
+				current_player.getCity().putPlayer(current_player);
+				current_player.getHand().remove(card.getCity().alias);
+				return true;
+			}
+		}
+
+		return moved;
+	}
+
+	/**
+	 * Flies to the destination city if there is a investigation center in the
+	 * current city and another one in the destination city.
+	 * 
+	 * @param destination
+	 * @return true if moved and false otherwise.
+	 */
+	public boolean airBridge(Player current_player, City destination) {
+		boolean moved = false;
+		if (current_player.getCity().canResearch() && destination.canResearch()) {
+			current_player.getCity().removePlayer(current_player);
+			current_player.setCity(destination);
+			current_player.getCity().putPlayer(current_player);
+			moved = true;
+		}
+
+		return moved;
 	}
 
 	void automaticDoctorDiseasesTreatment() {
