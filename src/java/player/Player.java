@@ -6,7 +6,6 @@ import java.io.FileReader;
 
 import city.City;
 import card.*;
-import game.*;
 import _aux.Options;
 import _aux.CustomTypes;
 
@@ -18,8 +17,7 @@ public class Player {
 	public String alias;
 	private City city;
 	private Role prole;
-	private ArrayList<Card> hand = new ArrayList<Card>(); // Player card hand. Hashtable? (might be useful to map the
-															// cards by a unique id)
+	private HashMap<String, CityCard> hand = new HashMap<String, CityCard>();
 
 	// Constructors
 	public Player(String alias) {
@@ -139,75 +137,17 @@ public class Player {
 		return p_order;
 	}
 
-	/**
-	 * Flies to the destination city discarding one card of the hand of that city.
-	 * 
-	 * @param destination
-	 * @return true if moved and false otherwise.
-	 */
-	public boolean directFlight(City destination) {
-		boolean moved = false;
-		for (Card card : this.hand) {
-			if (card.getCity() == destination) {
-				this.city.removePlayer(this);
-				this.city = destination;
-				this.city.putPlayer(this);
-				this.hand.remove(card);
-				return true;
-			}
-		}
-
-		return moved;
-	}
-
-	/**
-	 * Flies to the destination city discarding one card of the hand of the current
-	 * city.
-	 * 
-	 * @param destination
-	 * @return true if moved and false otherwise.
-	 */
-	public boolean charterFlight(City destination) {
-		boolean moved = false;
-		for (Card card : this.hand) {
-			if (card.getCity() == this.city) {
-				this.city.removePlayer(this);
-				this.city = destination;
-				this.city.putPlayer(this);
-				this.hand.remove(card);
-				return true;
-			}
-		}
-
-		return moved;
-	}
-
-	/**
-	 * Flies to the destination city if there is a investigation center in the
-	 * current city and another one in the destination city.
-	 * 
-	 * @param destination
-	 * @return true if moved and false otherwise.
-	 */
-	public boolean airBridge(City destination) {
-		boolean moved = false;
-		if (this.city.canResearch() && destination.canResearch()) {
-			this.city.removePlayer(this);
-			this.city = destination;
-			this.city.putPlayer(this);
-			moved = true;
-		}
-
-		return moved;
-	}
-	
 	// Setters/Getters
 	public City getCity() {
 		return this.city;
 	}
-	
+
 	public void setCity(City c) {
 		this.city = c;
+	}
+
+	public HashMap<String, CityCard> getHand() {
+		return this.hand;
 	}
 
 	public void setRole(Role r) {
@@ -221,12 +161,12 @@ public class Player {
 		return this.prole;
 	}
 
-	public void removeCard(Card c) {
+	public void removeCard(String c) {
 		this.hand.remove(c);
 	}
 
-	public void addCard(Card c) {
-		this.hand.add(c);
+	public void addCard(CityCard c) {
+		this.hand.put(c.getCity().alias, c);
 	}
 
 	// Dummy method to print disease data

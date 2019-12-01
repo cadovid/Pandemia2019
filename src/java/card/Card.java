@@ -10,6 +10,7 @@ import dis.Disease;
 public abstract class Card {
 
 	protected City city;
+	public boolean isEpidemic;
 
 	public City getCity() {
 		return city;
