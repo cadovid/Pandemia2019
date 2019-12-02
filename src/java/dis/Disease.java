@@ -131,7 +131,7 @@ public class Disease {
 		if (cure == true || current_player.getRole().alias.equals("doctor")) {
 			heal(e.spread_level);
 			e.spread_level = 0;
-			// TODO: Borrar objeto epidemia (no tiene sentido, porque epidemia debería ser
+			// TODO: Borrar objeto epidemia (no tiene sentido, porque epidemia debera ser
 			// un atributo de ciudad, no un objeto).
 		} else {
 			heal(1);
@@ -148,7 +148,7 @@ public class Disease {
 		// AUMENTAR EN UNO EL CONTADOR DE EPIDEMIAS.
 		/*
 		 * Card c = g.cards_infection.pop(g.cards_infection.size()-1); infect(c.city,3);
-		 * // Función grupo 4 g.discarded_icards.add(c); while (g.discarded_icards !=
+		 * // Funcin grupo 4 g.discarded_icards.add(c); while (g.discarded_icards !=
 		 * null){ g.cards_infection.add(0,
 		 * g.discarded_icards.pop((int)(Math.random()*discarded_icards.size()))); }
 		 */

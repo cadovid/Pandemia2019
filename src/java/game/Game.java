@@ -33,7 +33,7 @@ public class Game extends jason.environment.Environment {
 	public static final Term DIRECT_FLIGHT = Literal.parseLiteral("directFlight(dest)");
 	public static final Term CHARTER_FLIGHT = Literal.parseLiteral("charterFlight(dest)");
 	public static final Term AIR_BRIDGE = Literal.parseLiteral("airBridge(dest)");
-	public static final Term BUILD_CI = Literal.parseLiteral("buildCI()");
+	public static final Term BUILD_CI = Literal.parseLiteral("buildCI");
 	public static final Term TREAT_DISEASE = Literal.parseLiteral("treatDisease(disease)");
 	public static final Term SHARE_INFO = Literal.parseLiteral("shareInfo(player)");
 	public static final Term DISCOVER_CURE = Literal.parseLiteral("discoverCure(disease)");
@@ -139,6 +139,14 @@ public class Game extends jason.environment.Environment {
 
 	@Override
 	public boolean executeAction(String ag, Structure action) {
+		if(true) {
+			logger.info("voiding exec");
+			return true;
+			
+		}
+		
+		
+		
 		logger.info(ag + " doing: " + action);
 		boolean consumed_action = false;
 		try {
@@ -168,7 +176,8 @@ public class Game extends jason.environment.Environment {
 						consumed_action = true;
 						automaticDoctorDiseasesTreatment();
 					}
-				} else if (action.equals(BUILD_CI)) {
+				} 
+				else if (action.equals(BUILD_CI)) {
 					if (putInvestigationCentre(gs.cp.getCity())) {
 						consumed_action = true;
 					}
@@ -259,6 +268,7 @@ public class Game extends jason.environment.Environment {
 	}
 
 	/** creates the agents perception */
+	
 	void updatePercepts() {
 		clearPercepts();
 
