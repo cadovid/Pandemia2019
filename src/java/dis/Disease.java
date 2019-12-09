@@ -127,12 +127,10 @@ public class Disease {
 	 * @param current_player
 	 * @return
 	 */
-	public boolean treatDesease(Epidemic e, Player current_player) {
+	public boolean treatDisease(Epidemic e, Player current_player) {
 		if (cure == true || current_player.getRole().alias.equals("doctor")) {
 			heal(e.spread_level);
 			e.spread_level = 0;
-			// TODO: Borrar objeto epidemia (no tiene sentido, porque epidemia debera ser
-			// un atributo de ciudad, no un objeto).
 		} else {
 			heal(1);
 			e.spread_level -= 1;

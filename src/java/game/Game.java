@@ -175,13 +175,13 @@ public class Game extends jason.environment.Environment {
 					}
 				} else if (action.equals(TREAT_DISEASE)) {
 					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-					// TODO: treatDisease() with the Epidemic object or the final decision to handle
-					// this
-					// if (treatDisease() {
-					// consumed_action = true;
-					// } else {
-					// consumed_action = false;
-					// }
+					Disease dis = diseases.get(dis_alias);
+					City city = gs.cp.getCity();
+					if (dis.treatDisease(city.getEpidemic(dis), gs.cp)) {
+						consumed_action = true;
+					} else {
+						consumed_action = false;
+					}
 				} else if (action.equals(SHARE_INFO)) {
 					String player_alias = ((StringTerm) action.getTerm(0)).toString();
 					String city_name = ((StringTerm) action.getTerm(1)).toString();
@@ -190,7 +190,6 @@ public class Game extends jason.environment.Environment {
 					consumed_action = true;
 				} else if (action.equals(DISCOVER_CURE)) {
 					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-					// TODO: discoverCure checks
 					if (discoverCure(gs.cp, dis_alias)) {
 						consumed_action = true;
 					} else {
@@ -208,6 +207,7 @@ public class Game extends jason.environment.Environment {
 				String player_alias = ((StringTerm) action.getTerm(1)).toString();
 				players.get(player_alias).removeCard(city);
 				// This action does never consume action, it happens in draw phase
+				// or when sharing info with another player
 				consumed_action = false;
 			} else {
 				return false;
@@ -384,10 +384,10 @@ public class Game extends jason.environment.Environment {
 			CityCard new_card = this.cards_player.remove(0);
 			this.discarded_pcards.add(new_card);
 			if (new_card.isEpidemic()) {
-				// TODO
-				// propagate()
-				// infect()
+				// propagate
 				increaseInfectionLevel();
+				// infect and intensify
+				drawInfectCard();
 			} else {
 				player.addCard(new_card);
 			}
@@ -400,9 +400,17 @@ public class Game extends jason.environment.Environment {
 		boolean enoughCards = false;
 		if (!this.cards_infection.isEmpty()) {
 			enoughCards = true;
+			// The last card is drawn (0 is the bottom in this deck)
 			CityCard new_card = this.cards_infection.remove(0);
 			this.discarded_icards.add(new_card);
 			infect(new_card.getCity(), new_card.getDisease());
+			// intensify: the discarded icards are shuffled and put on top
+			// (last items)
+			Collections.shuffle(discarded_icards);
+			for (CityCard c : discarded_icards) {
+				this.cards_infection.add(c);
+			}
+			this.discarded_icards = new ArrayList<CityCard>();
 		}
 
 		return enoughCards;
@@ -415,23 +423,29 @@ public class Game extends jason.environment.Environment {
 	public boolean discoverCure(Player current_player, String diseaseAlias) {
 		Disease disease = this.diseases.get(diseaseAlias);
 		ArrayList<String> to_discard = new ArrayList<String>();
+		boolean satisfied = false;
 		for (Map.Entry<String, CityCard> entry : current_player.getHand().entrySet()) {
 			City city = entry.getValue().getCity();
 			if (city.local_disease.alias == diseaseAlias) {
 				to_discard.add(entry.getKey());
 				if (to_discard.size() == 5
 						|| (to_discard.size() == 4 && current_player.getRole().alias.equals("genetist"))) {
+					satisfied = true;
 					break;
 				}
 			}
+		}
+		if (satisfied) {
 			for (String city_alias : to_discard) {
 				current_player.removeCard(city_alias);
 			}
-			// discarded_pcards.add(c);
+			disease.setCure(true);
+			automaticDoctorDiseasesTreatment();
+
+			return true;
+		} else {
+			return false;
 		}
-		disease.setCure(true);
-		automaticDoctorDiseasesTreatment();
-		return true;
 	}
 
 	public boolean moveAdjacent(Player current_player, Direction destination) {
@@ -539,20 +553,22 @@ public class Game extends jason.environment.Environment {
 
 		Epidemic epidemic = city.getEpidemic(dis);
 
-		// If max spread level exceeded, then an outbreak occurs.
-		if (epidemic.spread_level + 1 > Options.MAX_SPREADS_PER_CITY) {
+		// if the disease is cured nothing happens
+		if (!dis.getCure()) {
+			// If max spread level exceeded, then an outbreak occurs.
+			if (epidemic.spread_level + 1 > Options.MAX_SPREADS_PER_CITY) {
 
-			// Updates disease total spreads
-			dis.spread(Options.MAX_SPREADS_PER_CITY - epidemic.spread_level);
-			epidemic.spread_level = Options.MAX_SPREADS_PER_CITY;
+				// Updates disease total spreads
+				dis.spread(Options.MAX_SPREADS_PER_CITY - epidemic.spread_level);
+				epidemic.spread_level = Options.MAX_SPREADS_PER_CITY;
 
-			// Expands to adjacent cities
-			for (City neigh : city.getNeighbors().values()) {
-				infect(neigh, dis);
+				// Expands to adjacent cities
+				for (City neigh : city.getNeighbors().values()) {
+					infect(neigh, dis);
+				}
+			} else {
+				epidemic.spread_level = epidemic.spread_level + 1;
 			}
-		} else {
-
-			epidemic.spread_level = epidemic.spread_level + 1;
 		}
 	}
 
