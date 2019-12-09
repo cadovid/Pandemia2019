@@ -15,7 +15,7 @@ public class GameStatus {
 	public boolean lost = false;
 	public boolean over = false;
 	public int n_outbreaks = 0;
-	private Board board;
+	public Board board;
 	public int[] infection_levels = new int[] { 2, 2, 2, 3, 3, 4, 4 };
 	public int current_infection_level = 0;
 	public int current_research_centers = 0;
