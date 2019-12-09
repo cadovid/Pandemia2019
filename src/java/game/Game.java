@@ -35,9 +35,9 @@ public class Game extends jason.environment.Environment {
 	public static final Term AIR_BRIDGE = Literal.parseLiteral("airBridge(dest)");
 	public static final Term BUILD_CI = Literal.parseLiteral("buildCI");
 	public static final Term TREAT_DISEASE = Literal.parseLiteral("treatDisease(disease)");
-	public static final Term SHARE_INFO = Literal.parseLiteral("shareInfo(player)");
+	public static final Term SHARE_INFO = Literal.parseLiteral("shareInfo(player, city, cp_giver)");
 	public static final Term DISCOVER_CURE = Literal.parseLiteral("discoverCure(disease)");
-	public static final Term DISCARD_CARD = Literal.parseLiteral("discardCard(card)");
+	public static final Term DISCARD_CARD = Literal.parseLiteral("discardCard(card, player)");
 
 	// GameStatus object. Contains current game relevant data
 	public GameStatus gs;
@@ -139,14 +139,6 @@ public class Game extends jason.environment.Environment {
 
 	@Override
 	public boolean executeAction(String ag, Structure action) {
-		if(true) {
-			logger.info("voiding exec");
-			return true;
-			
-		}
-		
-		
-		
 		logger.info(ag + " doing: " + action);
 		boolean consumed_action = false;
 		try {
@@ -176,8 +168,7 @@ public class Game extends jason.environment.Environment {
 						consumed_action = true;
 						automaticDoctorDiseasesTreatment();
 					}
-				} 
-				else if (action.equals(BUILD_CI)) {
+				} else if (action.equals(BUILD_CI)) {
 					if (putInvestigationCentre(gs.cp.getCity())) {
 						consumed_action = true;
 					}
@@ -193,7 +184,9 @@ public class Game extends jason.environment.Environment {
 					// }
 				} else if (action.equals(SHARE_INFO)) {
 					String player_alias = ((StringTerm) action.getTerm(0)).toString();
-					// TODO: shareInfo(gs.cp, player_alias);
+					String city_name = ((StringTerm) action.getTerm(1)).toString();
+					boolean cp_giver = Boolean.parseBoolean(((StringTerm) action.getTerm(1)).toString());
+					shareInfo(player_alias, city_name, cp_giver);
 					consumed_action = true;
 				} else if (action.equals(DISCOVER_CURE)) {
 					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
@@ -206,15 +199,15 @@ public class Game extends jason.environment.Environment {
 				} else {
 					return false;
 				}
+			}
+			if (action.equals(DISCARD_CARD)) {
+				String city = ((StringTerm) action.getTerm(0)).toString();
+				String player_alias = ((StringTerm) action.getTerm(1)).toString();
+				players.get(player_alias).removeCard(city);
+				// This action does never consume action, it happens in draw phase
+				consumed_action = false;
 			} else {
-				if (action.equals(DISCARD_CARD)) {
-					String city = ((StringTerm) action.getTerm(0)).toString();
-					gs.cp.removeCard(city);
-					// This action does never consume action, it happens in draw phase
-					consumed_action = false;
-				} else {
-					return false;
-				}
+				return false;
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -268,18 +261,18 @@ public class Game extends jason.environment.Environment {
 	}
 
 	/** creates the agents perception */
-	
+
 	void updatePercepts() {
 		clearPercepts();
 
 		// All percepts are added to all agents except the remaining actions,
 		// that depends on the agent
 		for (Player p : players.values()) {
+			if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
+				addPercept(p.alias, Literal.parseLiteral("cardMustBeenDiscarded"));
+			}
 			if (gs.cp.equals(p)) {
-				addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));
-				if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
-					addPercept(p.alias, Literal.parseLiteral("cardMustBeenDiscarded()"));
-				}
+				addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));				
 			} else {
 				addPercept(p.alias, Literal.parseLiteral("left_actions(" + 0 + ")"));
 			}
@@ -361,6 +354,23 @@ public class Game extends jason.environment.Environment {
 		Collections.shuffle(this.cards_player);
 		Collections.shuffle(this.cards_infection);
 
+	}
+
+	public void shareInfo(String player, String city_name, boolean cp_giver) {
+		Player giver, receiver;
+		// Select who gives the card and who receives it
+		if (cp_giver) {
+			giver = this.gs.cp;
+			receiver = this.players.get(player);
+		} else {
+			receiver = this.gs.cp;
+			giver = this.players.get(player);
+		}
+		CityCard card = giver.removeCard(city_name);
+		// The discard percept is added in updatePercepts() after doing the
+		// action
+
+		receiver.addCard(card);
 	}
 
 	public boolean drawPLayerCard(Player player) {

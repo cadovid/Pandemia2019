@@ -161,8 +161,8 @@ public class Player {
 		return this.prole;
 	}
 
-	public void removeCard(String c) {
-		this.hand.remove(c);
+	public CityCard removeCard(String c) {
+		return this.hand.remove(c);
 	}
 
 	public void addCard(CityCard c) {
