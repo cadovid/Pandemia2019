@@ -16,8 +16,8 @@ import _aux.CustomTypes.Direction;
 public class Board {
 	private int[][] map_threat;
 	private Cell[][] map;
-	private int n_cols;
-	private int n_rows;
+	public int n_cols;
+	public int n_rows;
 
 	// Constructors
 	public Board(Cell[][] map, int w, int h) {

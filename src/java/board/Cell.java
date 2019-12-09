@@ -60,4 +60,8 @@ public class Cell {
 			return false;
 		}
 	}
+	
+	public int[] getCoordinates() {
+		return new int[] {x, y};
+	}
 }
