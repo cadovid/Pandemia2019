@@ -38,6 +38,7 @@ public class Game extends jason.environment.Environment {
 	public static final Term SHARE_INFO = Literal.parseLiteral("shareInfo(player, city, cp_giver)");
 	public static final Term DISCOVER_CURE = Literal.parseLiteral("discoverCure(disease)");
 	public static final Term DISCARD_CARD = Literal.parseLiteral("discardCard(card, player)");
+	public static final Term PASS_TURN = Literal.parseLiteral("passTurn");
 
 	// GameStatus object. Contains current game relevant data
 	public GameStatus gs;
@@ -172,7 +173,6 @@ public class Game extends jason.environment.Environment {
 					if (putInvestigationCentre(gs.cp.getCity())) {
 						consumed_action = true;
 					}
-
 				} else if (action.equals(TREAT_DISEASE)) {
 					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
 					// TODO: treatDisease() with the Epidemic object or the final decision to handle
@@ -196,6 +196,9 @@ public class Game extends jason.environment.Environment {
 					} else {
 						return false;
 					}
+				} else if (action.equals(PASS_TURN)) {
+					consumed_action = false;
+					gs.p_actions_left = 0;
 				} else {
 					return false;
 				}
@@ -272,7 +275,7 @@ public class Game extends jason.environment.Environment {
 				addPercept(p.alias, Literal.parseLiteral("cardMustBeenDiscarded"));
 			}
 			if (gs.cp.equals(p)) {
-				addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));				
+				addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));
 			} else {
 				addPercept(p.alias, Literal.parseLiteral("left_actions(" + 0 + ")"));
 			}
