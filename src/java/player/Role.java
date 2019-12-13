@@ -87,6 +87,7 @@ public class Role {
 			System.exit(0);
 		}
 
+		// Binds game roles
 		return roles;
 	}
 

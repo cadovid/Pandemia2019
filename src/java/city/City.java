@@ -5,7 +5,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 import dis.Disease;
-import dis.Epidemic;
+import dis.Infection;
 import player.Player;
 import board.Cell;
 import _aux.Options;
@@ -21,24 +21,23 @@ public class City {
 	// Static info. Once initialized, it should remain untouched
 	public String alias;
 	public String name;
+	public int population;
 	public Disease local_disease;
 	private Cell cell;
 	private Hashtable<Direction, City> neighbors; // Adjacent cities. Should be initialized when instatiating the Board
 													// object
 
 	// Dynamic data. Can be changed through gameplay
-	private ArrayList<Player> players = new ArrayList<Player>(); // Players in the city
-	private ArrayList<Epidemic> epidemics = new ArrayList<Epidemic>(); // Active diseases
-	/**
-	 * true if there is a investigation centre and false otherwise.
-	 */
+	public Hashtable<String, Player> players = new Hashtable<String, Player>(); // Players in the city
+	public ArrayList<Infection> infections = new ArrayList<Infection>(); // Active diseases
 	public boolean can_research = false;
 
 	// Constructor
-	public City(String name, String alias, Disease ldis) {
+	public City(String name, String alias, Disease ldis, int pop) {
 		this.name = name;
 		this.alias = alias;
 		this.local_disease = ldis;
+		this.population = pop;
 	}
 
 	// Setters/Getters
@@ -74,6 +73,8 @@ public class City {
 			String city_ldis_alias;
 			Disease city_ldis;
 			boolean disease_exists = false;
+			// NEW
+			int city_pop;
 
 			// Reads city data from subsequent lines (Must follow the expected disease
 			// format)
@@ -84,6 +85,9 @@ public class City {
 				city_name = city_data[0];
 				city_alias = city_data[1];
 				city_ldis_alias = city_data[2];
+
+				// NEW
+				city_pop = Integer.parseInt(city_data[3]);
 
 				// Tries to create City object
 				if (cities.containsKey(city_alias)) {
@@ -104,7 +108,7 @@ public class City {
 
 					// Creates City object and adds it to the dictionary
 					else {
-						City city = new City(city_name, city_alias, diseases.get(city_ldis_alias));
+						City city = new City(city_name, city_alias, diseases.get(city_ldis_alias), city_pop);
 						cities.put(city_alias, city);
 
 						if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
@@ -125,6 +129,7 @@ public class City {
 			System.exit(0);
 		}
 
+		// Binds cities to game
 		return cities;
 	}
 
@@ -140,12 +145,12 @@ public class City {
 	}
 
 	// Retrieves list of active epidemics
-	public ArrayList<Epidemic> getEpidemics() {
-		return this.epidemics;
+	public ArrayList<Infection> getInfections() {
+		return this.infections;
 	}
 
 	// Retrieves list of players in the city
-	public ArrayList<Player> getPlayers() {
+	public Hashtable<String, Player> getPlayers() {
 		return this.players;
 	}
 
@@ -164,13 +169,13 @@ public class City {
 	}
 
 	// Adds an epidemic
-	public void infect(Epidemic e) {
-		this.epidemics.add(e);
+	public void infect(Infection e) {
+		this.infections.add(e);
 	}
 
 	// Puts a player in the city
 	public void putPlayer(Player p) {
-		this.players.add(p);
+		this.players.put(p.alias, p);
 	}
 
 	/**
@@ -201,20 +206,20 @@ public class City {
 	}
 
 	/**
-	 * Returns the epidemic of a given disease.
+	 * Returns the infection of a given disease.
 	 */
-	public Epidemic getEpidemic(Disease disease) {
+	public Infection getInfection(Disease disease) {
 
-		for (Epidemic epidemic : this.epidemics) {
+		for (Infection epidemic : this.infections) {
 			if (epidemic.dis.equals(disease)) {
 				return epidemic;
 			}
 		}
-		Epidemic epidemic = new Epidemic(disease, this, 0);
-		this.epidemics.add(epidemic);
-		disease.getEpidemics().add(epidemic);
+		Infection infection = new Infection(disease, this, 0);
+		this.infections.add(infection);
+		disease.getInfections().add(infection);
 
-		return epidemic;
+		return infection;
 	}
 
 	// Dummy method to print city data

@@ -56,15 +56,22 @@ public class Game extends jason.environment.Environment {
 	// The agents must have the same alias than players
 	public Hashtable<String, Player> players;
 	public ArrayList<String> p_order; // Player order
-	public ArrayList<CityCard> city_cards;
+	public ArrayList<String> used_cities;
+	// List of active infections in the game
+	public ArrayList<Infection> infections;
+	public ArrayList<CityCard> c_cities;
+	public ArrayList<CityCard> c_infection;
 
 	// GRA
 	private Renderer render;
-
-	public ArrayList<CityCard> cards_player;
-	public ArrayList<CityCard> discarded_pcards = new ArrayList<CityCard>(); // discarded cards public
-	public ArrayList<CityCard> cards_infection;
-	public ArrayList<CityCard> discarded_icards = new ArrayList<CityCard>();
+	public CustomTypes.GameMode gm = CustomTypes.GameMode.TURN;
+	public boolean runTurn = false;
+	
+	// Decks
+	public Deck d_game;
+	public Deck d_infection;
+	public Deck d_game_discards;
+	public Deck d_infection_discards;
 
 	// Constructor. Loads data and initializes board.
 	public Game() {
@@ -106,36 +113,145 @@ public class Game extends jason.environment.Environment {
 		// Game g = new Game();
 		Board board = new Board(Datapaths.map, this.cities);
 		GameStatus gs = new GameStatus(board);
+		this.gs = gs;
+		parseData();
+		
+		c_cities = CityCard.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.CITY);
+		c_infection = CityCard.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.INFECTION);
 
-		// TODO
+		d_game = new Deck(c_cities, CustomTypes.DeckType.GAME);
+		d_infection = new Deck(c_infection, CustomTypes.DeckType.INFECTION);
+		d_game_discards = new Deck(CustomTypes.DeckType.GAME);
+		d_infection_discards = new Deck(CustomTypes.DeckType.INFECTION);
+
 		/*
-		 * Settle initial game configuration. Needs to implement: Initial diseases (draw
-		 * infection cards as per the real game) Player hands (draw deck cards) Player
-		 * order (hand-dependant, as per the real game)
+		 * Shuffles decks
+		 */
+		d_game.shuffle();
+		d_infection.shuffle();
+		
+		/*
+		 * Players steal from deck its initial hands (random order; hand size depends on
+		 * the number of players)
+		 */
+		int initHandSize = Options.initialHandSize(players.size());
+		for (Player p : players.values()) {
+			p.hand = d_game.draw(initHandSize);
+		}
+		
+		this.p_order = Player.resolvePlayerOrder(this.players);
+		
+		/*
+		 * Builds research center and puts players in initial city (assumes a valid set
+		 * of cities has already been loaded with the board)
+		 */
+		City starting_city = this.cities.get(this.gs.board.used_cities.get(0));
+		putInvestigationCentre(starting_city)
+;
+		for (Player p : players.values()) {
+			p.setCity(starting_city);
+		}
+		
+		/*
+		 * Spread initial infections across cities as per the game rules (drawing from
+		 * infection deck)
 		 */
 
-		// Dummy. Method to resolve player order. Should be redefined.
-		this.p_order = Player.resolvePlayerOrder(this.players);
+		// Infects 3 cities with an infection level of 3 (3 cubes)
+		for (CityCard c_3 : d_infection.draw(3).values()) {
+			City infected_city = c_3.city;
 
+			// Creates an Infection object and adds it to the city
+			Infection infection = new Infection(infected_city.local_disease, infected_city, 3);
+			infected_city.infections.add(infection);
+
+			// Adds infection to list
+			this.infections.add(infection);
+
+			// Adds card to discard deck
+			d_infection_discards.stack(c_3);
+		}
+
+		// Infects 3 cities with an infection level of 2 (2 cubes)
+		for (CityCard c_2 : d_infection.draw(3).values()) {
+			City infected_city = c_2.city;
+
+			// Creates an Infection object and adds it to the city
+			Infection infection = new Infection(infected_city.local_disease, infected_city, 2);
+			infected_city.infections.add(infection);
+
+			// Adds infection to list
+			this.infections.add(infection);
+
+			// Adds card to discard deck
+			d_infection_discards.stack(c_2);
+		}
+
+		// Infects 3 cities with an infection level of 1 (1 cubes)
+		for (CityCard c_1 : d_infection.draw(3).values()) {
+			City infected_city = c_1.city;
+
+			// Creates an Infection object and adds it to the city
+			Infection infection = new Infection(infected_city.local_disease, infected_city, 1);
+			infected_city.infections.add(infection);
+
+			// Adds infection to list
+			this.infections.add(infection);
+
+			// Adds card to discard deck
+			d_infection_discards.stack(c_1);
+		}
+		
+		/*
+		 * Generates epidemic cards (as many as specified in Options)
+		 */
+		ArrayList<CityCard> epidemics = new ArrayList<CityCard>();
+		for (int i = 0; i < Options.CARD_TOTAL_EPIDEMICS; i++) {
+			CityCard epidemic = new CityCard(null, true);
+			epidemics.add(epidemic);
+		}
+
+		/*
+		 * Puts epidemics cards into the game deck (evenly distributed, as per the game
+		 * rules)
+		 */
+		d_game.shove(epidemics);
+		
+		gs.cp = players.get(this.p_order.get(0));
+		gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
+
+		
 		// GRA - Initializes renderer
 		this.render = new Renderer(this, null, board);
-		logger.info("Ready");
+		// GRA - Refresh graphics
+		this.render.refresh(null, null);
+		if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
+			System.out.printf("[Game] INFO - Environment ready!\n");
+
+		updatePercepts();
 	}
 
 	/*
 	 * parseData Reads data from files and generates basic structures
 	 */
 	public void parseData() {
+		// Parses data from input files
 		this.roles = Role.parseRoles(Datapaths.role_list);
 
 		this.diseases = Disease.parseDis(Datapaths.disease_list);
 		this.cities = City.parseCities(Datapaths.city_list, this.diseases);
 		this.players = Player.parsePlayers(Datapaths.player_list, this.roles, this.cities);
 
+		// Sets counters
 		this.n_roles = this.roles.size();
 		this.n_diseases = this.diseases.size();
 		this.n_cities = this.cities.size();
 		this.n_players = this.players.size();
+
+		// Initializes the rest of aux lists
+		this.p_order = new ArrayList<String>();
+		this.used_cities = new ArrayList<String>();
+		this.infections = new ArrayList<Infection>();
 	}
 
 	@Override
@@ -177,7 +293,7 @@ public class Game extends jason.environment.Environment {
 					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
 					Disease dis = diseases.get(dis_alias);
 					City city = gs.cp.getCity();
-					if (dis.treatDisease(city.getEpidemic(dis), gs.cp)) {
+					if (dis.treatDisease(city.getInfection(dis), gs.cp)) {
 						consumed_action = true;
 					} else {
 						consumed_action = false;
@@ -267,6 +383,7 @@ public class Game extends jason.environment.Environment {
 
 	void updatePercepts() {
 		clearPercepts();
+		logger.info(gs.cp.alias);
 
 		// All percepts are added to all agents except the remaining actions,
 		// that depends on the agent
@@ -283,7 +400,7 @@ public class Game extends jason.environment.Environment {
 
 		// Percepts for cards and location of players
 		for (Player player : this.players.values()) {
-			addPercept(Literal.parseLiteral("at(" + player.alias + "," + player.alias + ")"));
+			addPercept(Literal.parseLiteral("at(" + player.alias + "," + player.city.alias + ")"));
 			for (String new_card : player.getHand().keySet()) {
 				addPercept(Literal.parseLiteral("hasCard(" + player.alias + "," + new_card + ")"));
 			}
@@ -294,10 +411,16 @@ public class Game extends jason.environment.Environment {
 			if (city.canResearch()) {
 				addPercept(Literal.parseLiteral("hasCI(" + city.alias + ")"));
 			}
-			for (Epidemic epidemic : city.getEpidemics()) {
-				addPercept(Literal.parseLiteral("spreadLevel(" + epidemic.city_host.alias + "," + epidemic.dis.alias
-						+ "," + epidemic.spread_level + ")"));
+			for (Infection infection : city.getInfections()) {
+				addPercept(Literal.parseLiteral("spreadLevel(" + infection.city_host.alias + "," + infection.dis.alias
+						+ "," + infection.spread_level + ")"));
 			}
+		}
+
+		// Active infections
+		for (Infection i : this.infections) {
+			addPercept(Literal
+					.parseLiteral("infected(" + i.city_host.alias + "," + i.dis.alias + "," + i.spread_level + ")"));
 		}
 
 		// Percepts for disease cures
@@ -308,7 +431,7 @@ public class Game extends jason.environment.Environment {
 		}
 
 		// TODO: percepts for all agents
-		addPercept(Literal.parseLiteral(""));
+		// addPercept(Literal.parseLiteral(""));
 	}
 
 	/**
@@ -338,27 +461,6 @@ public class Game extends jason.environment.Environment {
 		return next_player;
 	}
 
-	/*
-	 * Generate and shuffle the players and infection decks.
-	 */
-	public void generateDecks(int cards_per_city, int epidemic_cards) {
-		Collection<City> setOfCities = this.cities.values();
-		for (City c : setOfCities) {
-			for (int i = 0; i < cards_per_city; i++) {
-				this.cards_player.add(new CityCard(c, false));
-				this.cards_infection.add(new CityCard(c, false));
-			}
-		}
-
-		for (int i = 0; i < epidemic_cards; i++) {
-			this.cards_player.add(new CityCard(null, true));
-		}
-
-		Collections.shuffle(this.cards_player);
-		Collections.shuffle(this.cards_infection);
-
-	}
-
 	public void shareInfo(String player, String city_name, boolean cp_giver) {
 		Player giver, receiver;
 		// Select who gives the card and who receives it
@@ -379,10 +481,10 @@ public class Game extends jason.environment.Environment {
 	public boolean drawPLayerCard(Player player) {
 		// Si no quedan cartas que robar, devuelve false
 		boolean enoughCards = false;
-		if (!this.cards_player.isEmpty()) {
+		if (!this.d_game.cards.isEmpty()) {
 			enoughCards = true;
-			CityCard new_card = this.cards_player.remove(0);
-			this.discarded_pcards.add(new_card);
+			CityCard new_card = this.d_game.draw();
+			this.d_game_discards.stack(new_card);
 			if (new_card.isEpidemic()) {
 				// propagate
 				increaseInfectionLevel();
@@ -398,19 +500,17 @@ public class Game extends jason.environment.Environment {
 	public boolean drawInfectCard() {
 		// Si no quedan cartas que robar, devuelve false
 		boolean enoughCards = false;
-		if (!this.cards_infection.isEmpty()) {
+		if (!this.d_infection.cards.isEmpty()) {
 			enoughCards = true;
-			// The last card is drawn (0 is the bottom in this deck)
-			CityCard new_card = this.cards_infection.remove(0);
-			this.discarded_icards.add(new_card);
+			// The last card is drawn from the bottom
+			CityCard new_card = this.d_infection.bottomDraw();
+			this.d_infection_discards.stack(new_card);
 			infect(new_card.getCity(), new_card.getDisease());
 			// intensify: the discarded icards are shuffled and put on top
 			// (last items)
-			Collections.shuffle(discarded_icards);
-			for (CityCard c : discarded_icards) {
-				this.cards_infection.add(c);
-			}
-			this.discarded_icards = new ArrayList<CityCard>();
+			d_infection_discards.shuffle();
+			d_infection.atop(d_infection_discards.cards);
+			this.d_infection_discards.cards = new ArrayList<CityCard>();
 		}
 
 		return enoughCards;
@@ -523,7 +623,9 @@ public class Game extends jason.environment.Environment {
 	}
 
 	/**
-	 * Puts a investigation centre in the city.
+	 * Puts a investigation centre in the city. In the real game there are 6
+	 * investigation centers. Infinite possible research centres seems a reasonable
+	 * relaxation to the problem.
 	 */
 	public boolean putInvestigationCentre(City city) {
 		if (gs.current_research_centers < Options.MAX_RESEARCH_CENTERS - 1) {
@@ -537,7 +639,7 @@ public class Game extends jason.environment.Environment {
 
 	void automaticDoctorDiseasesTreatment() {
 		if (gs.cp.getRole().alias.equals("doctor")) {
-			for (Epidemic e : gs.cp.getCity().getEpidemics()) {
+			for (Infection e : gs.cp.getCity().getInfections()) {
 				if (e.dis.cure) {
 					e.dis.heal(e.spread_level);
 					e.spread_level = 0;
@@ -551,23 +653,23 @@ public class Game extends jason.environment.Environment {
 	 */
 	public void infect(City city, Disease dis) {
 
-		Epidemic epidemic = city.getEpidemic(dis);
+		Infection infection = city.getInfection(dis);
 
 		// if the disease is cured nothing happens
 		if (!dis.getCure()) {
 			// If max spread level exceeded, then an outbreak occurs.
-			if (epidemic.spread_level + 1 > Options.MAX_SPREADS_PER_CITY) {
+			if (infection.spread_level + 1 > Options.MAX_SPREADS_PER_CITY) {
 
 				// Updates disease total spreads
-				dis.spread(Options.MAX_SPREADS_PER_CITY - epidemic.spread_level);
-				epidemic.spread_level = Options.MAX_SPREADS_PER_CITY;
+				dis.spread(Options.MAX_SPREADS_PER_CITY - infection.spread_level);
+				infection.spread_level = Options.MAX_SPREADS_PER_CITY;
 
 				// Expands to adjacent cities
 				for (City neigh : city.getNeighbors().values()) {
 					infect(neigh, dis);
 				}
 			} else {
-				epidemic.spread_level = epidemic.spread_level + 1;
+				infection.spread_level = infection.spread_level + 1;
 			}
 		}
 	}
@@ -586,83 +688,4 @@ public class Game extends jason.environment.Environment {
 		return increased;
 	}
 
-	// OLD INITIALIZATION; ONLY AS A REFERENCE!: main class is useless if using game
-	// as environment. Initialization must be done in the init method...
-	public static void OLDmain(String args[]) {
-
-		// Initializes game
-		Game g = new Game();
-		Board board = new Board(Datapaths.map, g.cities);
-		GameStatus gs = new GameStatus(board);
-
-		// TODO
-		/*
-		 * Settle initial game configuration. Needs to implement: Initial diseases (draw
-		 * infection cards as per the real game) Player hands (draw deck cards) Player
-		 * order (hand-dependant, as per the real game)
-		 */
-
-		// Dummy. Method to resolve player order. Should be redefined.
-		g.p_order = Player.resolvePlayerOrder(g.players);
-
-		// GRA - Initializes renderer
-		g.render = new Renderer(g, null, board);
-
-		// Game cycle. Runs unitl the game is over
-		while (!gs.over) {
-
-			// Refresh graphics for updated cells. MUST KEEP RECORD OF THE UPDATED CITIES ON
-			// EACH TURN!
-			// GRA - List used to resolve which cities were updated on the current turn
-			// (renderer will refresh only those cities)
-			ArrayList<String> updated_cities = new ArrayList<String>();
-
-			// Dummy chunk - (test purposes)
-			City m = g.cities.get("mad");
-			Disease b = g.diseases.get("ban");
-			Disease b2 = g.diseases.get("ebo");
-			b.spreadToCity(m, 1);
-			b2.spreadToCity(m, 3);
-			updated_cities.add("mad");
-			gs.over = true;
-			System.out.printf("[GAME] over!!\n");
-
-			// Updates player number of available actions
-			gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
-
-			// On each round, iterates through all players
-			for (String p_alias : g.p_order) {
-
-				// Gets player according to the player order
-				Player p = g.players.get(p_alias);
-
-				// Action round
-				while (gs.p_actions_left > 0) {
-
-					// TODO - Player resolves action
-					gs.p_actions_left--;
-				}
-
-				// TODO
-				// Draw cards
-				/*
-				 * Define in Game a list of drawable cards from which the player should pick on
-				 * each round p.draw(cards);
-				 */
-
-				// TODO
-				// Resolve infection
-				/*
-				 * Define in Game a list of drawable infection cards from which the player
-				 * should pick on each round (the cards are activated at game level) Number of
-				 * cards to steal is manage through a variable in gs Cities gets automatically
-				 * infected. Outbreaks occurs at ease. g.draw(cards);
-				 */
-			}
-
-			// GRA - Once the player turn has ended, the renderer refreshes the updated
-			// cells
-			g.render.updateGridCells(updated_cities);
-		}
-	}
 }

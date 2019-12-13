@@ -13,7 +13,7 @@ public class Header extends graphics.Box {
 
 	// Constructors
 	public Header(int width, int height, int pHeight, int dHeight, Renderer r) {
-		super(width, height);
+		super(width, height, null);
 
 		this.setLayout(new GridLayout(1, 2, 0, 0));
 
@@ -31,8 +31,8 @@ public class Header extends graphics.Box {
 
 		// RAWR - Dirty fix to remove horizontal scroll!! (Should be done by preventing
 		// the overflow in the inner elements...)
-		player_scroll.setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_NEVER);
-		dis_scroll.setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_NEVER);
+		// player_scroll.setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_NEVER);
+		// dis_scroll.setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_NEVER);
 
 		player_scroll.setViewportView(player_pane);
 		dis_scroll.setViewportView(dis_pane);
@@ -52,6 +52,8 @@ public class Header extends graphics.Box {
 
 			// Player name and alias
 			JLabel player_info = new JLabel(p.alias + " (" + p.getRole().name + ")");
+			// player_info.setPreferredSize(new Dimension(width / 2, pHeight));
+			// player_info.setMaximumSize(new Dimension(width / 2, pHeight));
 
 			// Adds objects
 			player_entry.add(player_color);

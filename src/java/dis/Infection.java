@@ -4,13 +4,13 @@ import city.City;
 import dis.Disease;
 import _aux.Options;
 
-public class Epidemic {
+public class Infection {
 	public City city_host;
 	public Disease dis;
 	public int spread_level = 1;
 
 	// Constructor
-	public Epidemic(Disease d, City c, int spread) {
+	public Infection(Disease d, City c, int spread) {
 		this.dis = d;
 		this.city_host = c;
 		this.spread_level = spread;

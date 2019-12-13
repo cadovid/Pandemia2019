@@ -18,7 +18,7 @@ public class Disease {
 	public String name;
 	public int spreads_left; // Once this value reaches zero, then the disease is completely spreaded (game
 								// should end)
-	private ArrayList<Epidemic> epidemics; // Each epidemic represents an occurrence of the disease in a given city
+	private ArrayList<Infection> infections; // Each infection represents an occurrence of the disease in a given city
 
 	// Disease status flags
 	public boolean erradicated = false;
@@ -30,7 +30,7 @@ public class Disease {
 		this.name = name;
 		this.alias = alias;
 		this.spreads_left = max_spreads;
-		this.setEpidemics(new ArrayList<Epidemic>());
+		this.infections = new ArrayList<Infection>();
 	}
 
 	public boolean getCure() {
@@ -116,6 +116,7 @@ public class Disease {
 			System.exit(0);
 		}
 
+		// Binds diseases to game
 		return diseases;
 	}
 
@@ -127,7 +128,7 @@ public class Disease {
 	 * @param current_player
 	 * @return
 	 */
-	public boolean treatDisease(Epidemic e, Player current_player) {
+	public boolean treatDisease(Infection e, Player current_player) {
 		if (cure == true || current_player.getRole().alias.equals("doctor")) {
 			heal(e.spread_level);
 			e.spread_level = 0;
@@ -142,15 +143,6 @@ public class Disease {
 		}
 	}
 
-	public void infectEpidemic(/* Game g */) {
-		// AUMENTAR EN UNO EL CONTADOR DE EPIDEMIAS.
-		/*
-		 * Card c = g.cards_infection.pop(g.cards_infection.size()-1); infect(c.city,3);
-		 * // Funcin grupo 4 g.discarded_icards.add(c); while (g.discarded_icards !=
-		 * null){ g.cards_infection.add(0,
-		 * g.discarded_icards.pop((int)(Math.random()*discarded_icards.size()))); }
-		 */
-	}
 
 	// Weakens disease by increasing spreads_left counter by "n_heals"
 	public void heal(int n_heals) {
@@ -164,7 +156,7 @@ public class Disease {
 
 	// Decreases spreads_left counter by "n_spreads" while infecting a new city
 	public void spreadToCity(City c, int n_spreads) {
-		Epidemic e = new Epidemic(this, c, n_spreads);
+		Infection e = new Infection(this, c, n_spreads);
 		c.infect(e);
 
 		this.spreads_left -= n_spreads;
@@ -187,11 +179,11 @@ public class Disease {
 		System.out.println();
 	}
 
-	public ArrayList<Epidemic> getEpidemics() {
-		return epidemics;
+	public ArrayList<Infection> getInfections() {
+		return infections;
 	}
 
-	public void setEpidemics(ArrayList<Epidemic> epidemics) {
-		this.epidemics = epidemics;
+	public void setInfections(ArrayList<Infection> infections) {
+		this.infections = infections;
 	}
 }

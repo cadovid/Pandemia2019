@@ -1,5 +1,8 @@
 package card;
 
+import java.util.ArrayList;
+
+import _aux.CustomTypes;
 import city.City;
 import dis.Disease;
 
@@ -9,7 +12,7 @@ import dis.Disease;
 */
 public abstract class Card {
 
-	protected City city;
+	public City city;
 	public boolean isEpidemic;
 
 	public City getCity() {

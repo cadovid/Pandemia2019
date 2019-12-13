@@ -5,7 +5,7 @@ import javax.swing.*;
 
 import board.Cell;
 import city.City;
-import dis.Epidemic;
+import dis.*;
 
 public class GridDis extends GridInfo {
 
@@ -17,20 +17,20 @@ public class GridDis extends GridInfo {
 	 * Redefinition. Refreshes disease data in the cell
 	 */
 	public void update(Cell cell, Renderer r) {
-		// Calls superclass update method
-		super.update(cell, r);
+		// Removes old contents
+		this.removeAll();
 
 		// A valid city is required to be in the cell to properly update disease data
-		City c = cell.getCity();
+		City c = cell.city;
 		if (c == null) {
 			System.out.printf("[Renderer] WARN: Trying to update an empty cell. Ignoring...\n");
 			return;
 		}
 
-		// Iterates through active epidemics
-		for (Epidemic e : c.getEpidemics()) {
+		// Iterates through active infections
+		for (Infection e : c.infections) {
 
-			// Retrieves epidemic representation data
+			// Retrieves Infection view data
 			Color e_color = r.color_diseases.get(e.dis.alias);
 			String e_spread = String.valueOf(e.spread_level);
 

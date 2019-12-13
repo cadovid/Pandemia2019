@@ -15,14 +15,16 @@ public class GridCell extends Box {
 	private Cell board_cell;
 	private Color color_ldis; // Local disease color
 	private JPanel cell_hud;
+	private Renderer r;
 
 	GridDis info_diseases;
 	GridInfo info_research;
 	GridPlayer info_players;
 
 	public GridCell(int s, Cell bc, Renderer r) {
-		super(s, s, r);
+		super(s, s, new BorderLayout(0, 0));
 
+		this.r = r;
 		this.size = s;
 		this.board_cell = bc;
 
@@ -51,7 +53,7 @@ public class GridCell extends Box {
 		this.info_players = new GridPlayer(r.g.n_players);
 
 		this.info_diseases.setBackground(Color.red);
-		this.info_research.setBackground(Color.blue);
+		this.info_research.setBackground(Color.white);
 		this.info_players.setBackground(Color.pink);
 
 		cell_hud.add(this.info_diseases);
@@ -63,14 +65,18 @@ public class GridCell extends Box {
 		// this.add(new JButton("r"));
 	}
 
-	public void updateCell() {
-		// Refresh epidemics
+	public void refresh() {
+		// Refreshes infections
 		this.info_diseases.update(this.board_cell, this.r);
 
-		// TO-DO Refresh players
-		this.info_players.update(this.board_cell, this.r);
+		// Refreshes players
+		this.info_players.refresh(this.board_cell, this.r);
 
-		// TO-DO Refresh research centers
+		if (this.board_cell.city.can_research) {
+			this.info_research.setOpaque(true);
+		} else {
+			this.info_research.setOpaque(false);
+		}
 	}
 
 	/*

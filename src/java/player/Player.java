@@ -15,9 +15,10 @@ import _aux.CustomTypes;
 */
 public class Player {
 	public String alias;
-	private City city;
+	public City city;
 	private Role prole;
-	private HashMap<String, CityCard> hand = new HashMap<String, CityCard>();
+	public HashMap<String, CityCard> hand = new HashMap<String, CityCard>();
+	public boolean turn = false;
 
 	// Constructors
 	public Player(String alias) {
@@ -121,12 +122,59 @@ public class Player {
 		return players;
 	}
 
-	// TODO
 	/*
 	 * Resolves player order based on initial player hand (as per the original game)
 	 */
 	public static ArrayList<String> resolvePlayerOrder(Hashtable<String, Player> players) {
+
+		// Target player order & aux hashtable used to identify the highest card of each
+		// player
 		ArrayList<String> p_order = new ArrayList<String>();
+		Hashtable<String, Integer> p_bestCard = new Hashtable<String, Integer>();
+
+		// Evaluates every card in the player hand
+		for (Player p : players.values()) {
+			if (p.hand == null) {
+				if (Options.LOG.ordinal() >= CustomTypes.LogLevel.CRITICAL.ordinal())
+					System.out
+							.printf("[Player] CRITICAL: Cannot resolve player order. At least a player have no hand\n");
+
+				return null;
+			}
+
+			// Iterates every card in the player hand to find the city with the highest
+			// population
+			int highest_population = 0;
+			for (CityCard c : p.hand.values()) {
+
+				if (c.city != null) {
+					int c_population = c.city.population;
+
+					// Evaluates city population against the highest found value
+					if (c_population > highest_population) {
+						highest_population = c_population;
+					}
+				}
+			}
+
+			// Resolves player highest population
+			p_bestCard.put(p.alias, highest_population);
+
+			// Evaluates ordered list and checks the highest city population of every sorted
+			// player
+			int sorted_index = 0;
+			for (String sorted_p : p_order) {
+				if (p_bestCard.get(sorted_p) < highest_population) {
+					break;
+				}
+
+				sorted_index++;
+			}
+
+			// Appends player in the right order
+			p_order.add(sorted_index, p.alias);
+
+		}
 
 		// Dummy order
 		Set<String> p_alias = players.keySet();
@@ -143,7 +191,12 @@ public class Player {
 	}
 
 	public void setCity(City c) {
+		// Keeps conherence. A player can only be in a single city
+		if (this.city != null) {
+			this.city.players.remove(this.alias);
+		}
 		this.city = c;
+		c.players.put(this.alias, this);
 	}
 
 	public HashMap<String, CityCard> getHand() {
@@ -166,7 +219,9 @@ public class Player {
 	}
 
 	public void addCard(CityCard c) {
-		this.hand.put(c.getCity().alias, c);
+		if (c.getCity() != null) {
+			this.hand.put(c.getCity().alias, c);
+		}
 	}
 
 	// Dummy method to print disease data

@@ -18,7 +18,7 @@ public class Cell {
 	private int threat = 0;
 
 	// A cell without city is a null cell
-	private City city = null;
+	public City city = null;
 
 	// Constructors
 	public Cell(int x, int y) {

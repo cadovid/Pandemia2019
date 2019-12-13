@@ -16,9 +16,11 @@ public class GridPlayer extends GridInfo {
 	/*
 	 * Redefinition. Refreshes player data in the cell
 	 */
-	public void update(Cell cell, Renderer r) {
-		// Calls superclass update method
-		super.update(cell, r);
+	public void refresh(Cell cell, Renderer r) {
+
+		System.out.println("refreshing cell");
+		// Removes old contents
+		this.removeAll();
 
 		// A valid city is required to be in the cell to properly update disease data
 		City c = cell.getCity();
@@ -27,9 +29,9 @@ public class GridPlayer extends GridInfo {
 			return;
 		}
 
-		// Iterates through active epidemics
-		for (Player p : c.getPlayers()) {
-			// Retrieves epidemic representation data
+		// Iterates through players
+		for (Player p : c.players.values()) {
+			// Retrieves player view data
 			Color p_color = r.color_players.get(p.alias);
 
 			// Creates graphic object

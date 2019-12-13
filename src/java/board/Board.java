@@ -19,6 +19,8 @@ public class Board {
 	public int n_cols;
 	public int n_rows;
 
+	public ArrayList<String> used_cities;
+
 	// Constructors
 	public Board(Cell[][] map, int w, int h) {
 		this.map = map;
@@ -36,9 +38,10 @@ public class Board {
 	 ** 
 	 * PARAMETERS: datapath: String; path to map valid_cities: Dictionary; Contains
 	 * the valid city aliases as dictionary keys. Each value is the actual City
-	 * object
+	 * object used_cities: list in which the specified board cities will be saved
 	 */
 	public Board(String datapath, Hashtable<String, City> valid_cities) {
+		this.used_cities = new ArrayList<String>();
 
 		// Read csv lines creating stream from file
 		try {
@@ -88,14 +91,28 @@ public class Board {
 					}
 
 					// Iterates through every line element and checks if contains a valid city alias
+					// cell_text contains the city alias
 					for (String cell_text : line_data) {
 						cell = new Cell(n_col, n_row);
+
+						// Checks for special character in city (identifies initial city)
+						// Initial city is always at the first position of the control list (used
+						// cities)
+						if (cell_text.charAt(0) == '*') {							
+							cell_text = cell_text.substring(1);
+							this.used_cities.add(0, cell_text);
+						}
 
 						// Creates city and cross reference between itself and the assigned cell
 						if (valid_cities.containsKey(cell_text) && !picked_cities.contains(cell_text)) {
 							City city = valid_cities.get(cell_text);
 							cell.setCity(city);
 							city.setCell(cell);
+
+							// Appends city alias to control list
+							// I don't understand why you put all cities here,
+							// should not be only the starting city?
+							// this.used_cities.add(cell_text);
 
 							// City won't be loaded twice
 							picked_cities.add(cell_text);
@@ -148,7 +165,6 @@ public class Board {
 		return this.map[row][col];
 	}
 
-	// TODO
 	/*
 	 * Resolves adjacent cities
 	 */

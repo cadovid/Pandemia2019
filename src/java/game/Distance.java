@@ -316,7 +316,7 @@ public final class Distance {
 			}
 		}
 		for (City city : initialCity.getNeighbors().values()) {
-			if (city.getEpidemics() != null) {
+			if (city.getInfections() != null) {
 				existAdjacentCube = true;
 				break;
 			}
@@ -332,7 +332,7 @@ public final class Distance {
 		int nearestCubeDistance = Integer.MAX_VALUE;
 		City cityNearestCube = null;
 		for (City city : game.cities.values()) {
-			if (city.getEpidemics() != null) {
+			if (city.getInfections() != null) {
 				Cell cell = city.getCell();
 				int[] finalPosition = cell.getCoordinates();
 				String[] aux = shortRouteChoice(game, name, finalPosition);

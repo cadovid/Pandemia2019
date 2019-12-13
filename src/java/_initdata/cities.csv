@@ -1,49 +1,16 @@
-Chicago;chg;dia
-San Francisco;sfr;dia
-Atlanta;atl;dia
-Nueva York;nyc;dia
-Miami;mia;ban
-Mexico;mex;ban
-Lima;lim;ban
-Sao Paulo;spa;ban
-Bogotá;bog;ban
-Berlín;ber;dia
-Londres;lon;dia
-París;par;dia
-Milán;mil;dia
-Madrid;mad;dia
-Jartum;jar;ebo
-El Cairo;car;ebo
-Baghdad;bag;ebo
-Estambúl;ist;lup
-Beijing;bei;lup
-Seúl;seo;lup
-Teherán;teh;lup
-Manila;man;lup
-Sídney;syd;dia
-Delhi;del;lup
-Bangkok;ban;lup
-Hong Kong;hkg;lup
-Buenos Aires;bua;ban
-Lagos;lag;ban
-Los Angeles;lan;dia
-Montreal;mon;dia
-Moscow;mos;lup
-Mumbai;mum;ebo
-Osaka;osa;lup
-Riyadh;riy;ebo
-Santiago;san;ban
-Taipei;tai;lup
-Tokyo;tok;lup
-Washington;was;dia
-Kolkata;kol;lup
-Algiers;alg;dia
-Chennai;chen;ban
-Essen;ess;dia
-Ho Chi Minh City;hcm;lup
-Jakarta;jak;lup
-Johannesburg;joh;dia
-Karachi;kar;lup
-Kinshasa;kin;lup
-Shanghai;shan;lup
-St. Petersburg;pet;dia
+Santiago;san;gon;1500000
+Oviedo;ovi;gon;1000000
+Bilbao;bil;sif;2000000
+Barcelona;bcn;sif;5000000
+Vigo;vig;gon;1000000
+Leon;leo;sar;2500000
+Miranda;mir;sar;100000
+Zaragoza;zar;sif;1000000
+Merida;mer;pio;500000
+Toledo;tol;pio;2000000
+Madrid;mad;sar;6000000
+Valencia;val;sif;2000000
+Sevilla;sev;pio;3000000
+Cadiz;cad;pio;4000000
+Almeria;alm;sif;1500000
+Murcia;mur;sif;500000

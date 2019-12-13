@@ -18,10 +18,12 @@ public class Grid extends Box {
 														// specific city
 
 	// Actual panel dimensions (pixels)
-	private int cell_size = 50;
+	private int cell_size;
 
 	// Constructors
-	public Grid(Board board) {
+	public Grid(Board board, Renderer r, int cell_size) {
+		this.r = r;
+		this.cell_size = cell_size;
 		this.grid_cityCells = new Hashtable<String, GridCell>();
 		this.board = board;
 		int[] dimensions = board.getDimensions();
@@ -36,21 +38,21 @@ public class Grid extends Box {
 		this.updateSize();
 
 		this.setLayout(new GridLayout(this.n_rows, this.n_cols, 0, 0));
-		// this.drawCells();
-
+		this.drawCells();
 	}
 
 	/*
 	 * Refresh the grid cells containing the specified city aliases
 	 */
-	public void updateCells(ArrayList<String> city_aliases) {
+	public void refresh(ArrayList<String> city_aliases) {
 		for (String city_alias : city_aliases) {
 			// Retrieves relevant grid cell and calls its update method
 			GridCell gcell = this.grid_cityCells.get(city_alias);
 			if (gcell == null) {
 				System.out.printf("conflict with city %s\n", city_alias);
 			}
-			gcell.updateCell();
+			gcell.refresh();
+			// System.out.println("updated city "+city_alias);
 		}
 	}
 
@@ -65,16 +67,18 @@ public class Grid extends Box {
 			for (int col = 0; col < this.n_cols; col++) {
 				// System.out.printf(">>col %d\n", col);
 				// Initializes graphic object and adds it to the main panel
-				// Alsu updates the control array (grid_cells)
+				// Also updates the control array (grid_cells)
 				Cell cell_board = this.board.getCell(row, col);
 				City cell_city = cell_board.getCity();
 				GridCell gcell = new GridCell(this.cell_size, cell_board, this.r);
 
-				// If cell contains a city, save data to hastable
+				// If cell contains a city, save data to hashtable
 				if (cell_city != null) {
 					String cell_cityAlias = cell_city.alias;
 
 					grid_cityCells.put(cell_cityAlias, gcell);
+
+					System.out.println("+++saving city " + cell_cityAlias + " at row " + row + " and col " + col);
 				}
 
 				this.grid_cells[row][col] = gcell;

@@ -13,11 +13,26 @@ public final class CustomTypes {
 
 	// Specifies program log level
 	public static enum LogLevel {
-		CRITICAL, WARN, INFO, DUMP, ALL,
+		CRITICAL, WARN, INFO, DUMP, ALL
 	}
 
 	// Direction for adjacent moves
 	public static enum Direction {
 		UP, DOWN, LEFT, RIGHT
+	}
+
+	// Card types
+	public static enum CardType {
+		CITY, INFECTION, EPIDEMIC, SPECIAL
+	}
+
+	// Deck type
+	public static enum DeckType {
+		GAME, INFECTION
+	}
+
+	// Game action mode
+	public static enum GameMode {
+		TURN, TIMESTAMP
 	}
 }
