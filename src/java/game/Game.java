@@ -66,7 +66,7 @@ public class Game extends jason.environment.Environment {
 	private Renderer render;
 	public CustomTypes.GameMode gm = CustomTypes.GameMode.TURN;
 	public boolean runTurn = false;
-	
+
 	// Decks
 	public Deck d_game;
 	public Deck d_infection;
@@ -115,7 +115,7 @@ public class Game extends jason.environment.Environment {
 		GameStatus gs = new GameStatus(board);
 		this.gs = gs;
 		parseData();
-		
+
 		c_cities = CityCard.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.CITY);
 		c_infection = CityCard.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.INFECTION);
 
@@ -129,7 +129,7 @@ public class Game extends jason.environment.Environment {
 		 */
 		d_game.shuffle();
 		d_infection.shuffle();
-		
+
 		/*
 		 * Players steal from deck its initial hands (random order; hand size depends on
 		 * the number of players)
@@ -138,20 +138,19 @@ public class Game extends jason.environment.Environment {
 		for (Player p : players.values()) {
 			p.hand = d_game.draw(initHandSize);
 		}
-		
+
 		this.p_order = Player.resolvePlayerOrder(this.players);
-		
+
 		/*
 		 * Builds research center and puts players in initial city (assumes a valid set
 		 * of cities has already been loaded with the board)
 		 */
 		City starting_city = this.cities.get(this.gs.board.used_cities.get(0));
-		putInvestigationCentre(starting_city)
-;
+		putInvestigationCentre(starting_city);
 		for (Player p : players.values()) {
 			p.setCity(starting_city);
 		}
-		
+
 		/*
 		 * Spread initial infections across cities as per the game rules (drawing from
 		 * infection deck)
@@ -201,7 +200,7 @@ public class Game extends jason.environment.Environment {
 			// Adds card to discard deck
 			d_infection_discards.stack(c_1);
 		}
-		
+
 		/*
 		 * Generates epidemic cards (as many as specified in Options)
 		 */
@@ -216,11 +215,10 @@ public class Game extends jason.environment.Environment {
 		 * rules)
 		 */
 		d_game.shove(epidemics);
-		
+
 		gs.cp = players.get(this.p_order.get(0));
 		gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
 
-		
 		// GRA - Initializes renderer
 		this.render = new Renderer(this, null, board);
 		// GRA - Refresh graphics

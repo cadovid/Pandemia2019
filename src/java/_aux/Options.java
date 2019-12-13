@@ -16,7 +16,7 @@ public final class Options {
 	public static final int MAX_RESEARCH_CENTERS = 48;
 
 	// Program options
-	public static final CustomTypes.LogLevel LOG = CustomTypes.LogLevel.CRITICAL;
+	public static final CustomTypes.LogLevel LOG = CustomTypes.LogLevel.INFO;
 
 	// Private constructor. This class shouldn't be initialized
 	private Options() {
