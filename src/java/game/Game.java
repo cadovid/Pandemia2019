@@ -330,6 +330,7 @@ public class Game extends jason.environment.Environment {
 		
 		if(gm == _aux.CustomTypes.GameMode.TIMESTAMP) {
 			addPercept(Literal.parseLiteral("control_timeout("+ _aux.Options.GP_TIMEOUT_SLEEP +")"));
+			addPercept(Literal.parseLiteral("control_run"));
 		}
 		
 		// Manual control
