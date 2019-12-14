@@ -367,16 +367,18 @@ public class Game extends jason.environment.Environment {
 			}
 		}
 		if (gs.round == Round.STEAL) {
-			logger.info("Stealing, hand size: " + gs.cp.getHand().size());
 			if (gs.cp.getHand().size() <= Options.PLAYER_MAX_CARDS) {
 				while (gs.round == Round.STEAL) {
-					if (!drawPLayerCard(gs.cp)) {
-						updatePercepts();
-						this.stop();
-						return true;
-					}
-					gs.drawnCards++;
-					logger.info("Drawn cards: " + gs.drawnCards);
+					if (gs.drawnCards < Options.PLAYER_DRAW_CARDS) {
+						logger.info("Stealing, hand size: " + gs.cp.getHand().size());
+						if (!drawPLayerCard(gs.cp)) {
+							updatePercepts();
+							this.stop();
+							return true;
+						}
+						gs.drawnCards++;
+						logger.info("Drawn cards: " + gs.drawnCards);
+					}					
 					this.render.refresh(null, null);
 					if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
 						// One card must be discarded, so the actions are delayed
@@ -442,7 +444,7 @@ public class Game extends jason.environment.Environment {
 		// All percepts are added to all agents except the remaining actions,
 		// that depends on the agent
 		for (Player p : players.values()) {
-			if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
+			if (p.getHand().size() > Options.PLAYER_MAX_CARDS) {
 				addPercept(p.alias, Literal.parseLiteral("cardMustBeenDiscarded"));
 			}
 			if (gs.cp.equals(p)) {

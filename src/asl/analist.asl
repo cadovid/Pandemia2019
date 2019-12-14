@@ -7,6 +7,10 @@
 /* Plans */
 
 
+// Si tiene que descartarse una carta se descarta la primera que encuentra (TODO: mejorar esto)
++cardMustBeenDiscarded : hasCard(analist, CARD) <- discardCard(CARD, analist); -cardMustBeenDiscarded.
+
+
 // Checks current city and moves to adjacent cell
 // Es como un roomba roto
 +!wander :  turn &
@@ -53,11 +57,15 @@
                             +worst_dis(DIS);
                         }
                     }
-                    if (worst_dis(DIS)) {
+                    if (worst_dis(DIS) & DIS \== null) {
                         treatDisease(DIS);
+                        .print("Trying to heal ", CITY, " disease ", DIS);
+                        .print("END HEALING");
                     }
-                    .print("Trying to heal ", CITY);
-                    .print("END HEALING");
+                    else {
+                        moveAdjacentRandom;
+                        .print("END WANDERING TO RANDOM");
+                    }
                 }
                 
                 // Moves to random adjacent cell if no infection
