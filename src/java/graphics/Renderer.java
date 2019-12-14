@@ -33,7 +33,7 @@ public class Renderer extends JFrame {
 	private int header_playerHeight = 15;
 	private int header_diseaseHeight = 15;
 	private int footer_playerHeight = 80;
-	private int footerHeight = 80;
+	private int footerHeight = 320;
 	private int cell_size = 80;
 	private int control_height = 20;
 

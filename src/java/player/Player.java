@@ -176,12 +176,12 @@ public class Player {
 			p_order.add(sorted_index, p.alias);
 
 		}
-
+		/*
 		// Dummy order
 		Set<String> p_alias = players.keySet();
 		for (String alias : p_alias) {
 			p_order.add(alias);
-		}
+		}*/
 
 		return p_order;
 	}

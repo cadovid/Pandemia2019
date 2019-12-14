@@ -49,6 +49,8 @@ public class Footer extends graphics.Box {
 
 		// Creates scrollable container
 		JScrollPane scrollable = new JScrollPane();
+		scrollable.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrollable.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 		scrollable.setViewportView(container);
 
 		// Creates an info object per player containing its relevant info
@@ -127,8 +129,6 @@ public class Footer extends graphics.Box {
 		JLabel p_hand_l1 = new JLabel("Hand: ");
 		p_hand_l1.setFont(this.tab_font_data);
 		p_hand.add(p_hand_l1);
-
-		System.out.println("phand " + p.hand.size());
 
 		for (CityCard c : p.hand.values()) {
 			JLabel p_hand_l = new JLabel(c.city.alias);

@@ -132,6 +132,7 @@ public class Game extends jason.environment.Environment {
 		}
 
 		this.p_order = Player.resolvePlayerOrder(this.players);
+		logger.info("Players order: " + p_order.toString());
 
 		/*
 		 * Builds research center and puts players in initial city (assumes a valid set
@@ -314,9 +315,13 @@ public class Game extends jason.environment.Environment {
 					} else if (aname.equals("treatDisease")) {
 						String dis_alias = action.getTerm(0).toString();
 						Disease dis = diseases.get(dis_alias);
-						City city = gs.cp.getCity();
-						if (dis.treatDisease(city.getInfection(dis), gs.cp)) {
-							consumed_action = true;
+						if (dis != null) {
+							City city = gs.cp.getCity();
+							if (dis.treatDisease(city.getInfection(dis), gs.cp)) {
+								consumed_action = true;
+							} else {
+								consumed_action = false;
+							}
 						} else {
 							consumed_action = false;
 						}
@@ -346,6 +351,8 @@ public class Game extends jason.environment.Environment {
 			e.printStackTrace();
 		}
 
+		this.render.refresh(null, null);
+
 		if (gs.round == Round.ACT) {
 			logger.info("Checking left actions");
 			if (consumed_action) {
@@ -370,6 +377,7 @@ public class Game extends jason.environment.Environment {
 					}
 					gs.drawnCards++;
 					logger.info("Drawn cards: " + gs.drawnCards);
+					this.render.refresh(null, null);
 					if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
 						// One card must be discarded, so the actions are delayed
 						// until the agent calls the discard action
@@ -379,6 +387,7 @@ public class Game extends jason.environment.Environment {
 						logger.info("Infect round, to drawn: " + gs.infection_levels[gs.current_infection_level]);
 						for (int i = 0; i < gs.infection_levels[gs.current_infection_level]; i++) {
 							drawInfectCard();
+							this.render.refresh(null, null);
 						}
 						gs.round = Round.ACT;
 						gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
@@ -387,9 +396,10 @@ public class Game extends jason.environment.Environment {
 						gs.drawnCards = 0;
 						logger.info("ACT round, actions_left: " + gs.p_actions_left);
 						logger.info("Current player: " + gs.cp.alias);
-						logger.info("timeout mode: " + _aux.Options.GP_TIMEOUT);
+						logger.info("timeout mode: " + (gm == _aux.CustomTypes.GameMode.TIMESTAMP));
+						this.render.refresh(null, null);
 
-						if (_aux.Options.GP_TIMEOUT) {
+						if (gm == _aux.CustomTypes.GameMode.TIMESTAMP) {
 							try {
 								Thread.sleep(_aux.Options.GP_TIMEOUT_SLEEP);
 							} catch (InterruptedException e) {
@@ -493,7 +503,7 @@ public class Game extends jason.environment.Environment {
 		}
 
 		// Game mode
-		if (_aux.Options.GP_TIMEOUT) {
+		if (gm == _aux.CustomTypes.GameMode.TIMESTAMP) {
 			addPercept(Literal.parseLiteral("control_timeout(" + _aux.Options.GP_TIMEOUT_SLEEP + ")"));
 		} else {
 			addPercept(Literal.parseLiteral("control_manual)"));
@@ -536,6 +546,7 @@ public class Game extends jason.environment.Environment {
 		for (String alias : p_order) {
 			if (current_found) {
 				next_alias = alias;
+				break;
 			}
 			if (alias.equals(cp.alias)) {
 				current_found = true;
@@ -571,6 +582,11 @@ public class Game extends jason.environment.Environment {
 		// Si no quedan cartas que robar, devuelve false
 		if (!this.d_game.cards.isEmpty()) {
 			CityCard new_card = this.d_game.draw();
+			if (new_card.city != null) {
+				logger.info("Drawn player card: " + new_card.city.alias);
+			} else {
+				logger.info("Drawn epidemic card");
+			}
 			this.d_game_discards.stack(new_card);
 			if (new_card.isEpidemic()) {
 				// propagate
@@ -589,11 +605,10 @@ public class Game extends jason.environment.Environment {
 
 	public boolean drawInfectCard() {
 		// Si no quedan cartas que robar, devuelve false
-		boolean enoughCards = false;
 		if (!this.d_infection.cards.isEmpty()) {
-			enoughCards = true;
 			// The last card is drawn from the bottom
 			CityCard new_card = this.d_infection.bottomDraw();
+			logger.info("Drawn infection card: " + new_card.city.alias);
 			this.d_infection_discards.stack(new_card);
 			infect(new_card.getCity(), new_card.getDisease());
 			// intensify: the discarded icards are shuffled and put on top
@@ -601,9 +616,12 @@ public class Game extends jason.environment.Environment {
 			d_infection_discards.shuffle();
 			d_infection.atop(d_infection_discards.cards);
 			this.d_infection_discards.cards = new ArrayList<CityCard>();
+		} else {
+			logger.info("Infection deck out of cards... Game Over!");
+			return false;
 		}
 
-		return enoughCards;
+		return true;
 	}
 
 	/*
