@@ -9,6 +9,29 @@
 // Si tiene que descartarse una carta se descarta la primera que encuentra (TODO: mejorar esto)
 +cardMustBeenDiscarded : hasCard(genetist, CARD) <- discardCard(CARD, genetist); -cardMustBeenDiscarded.
 
+// EN CUALQUIER TURNO ==> Si tengo el objetivo de perseguir un virus, tengo suficientes cartas
+// y no tengo el objetivo de ir a un centro de investigación, detecto el centro de investigación
+// más cercano (definiendo la cercanía de forma similar que lo comentado en (b)) y añado el
+// objetivo de moverme a ese centro de investigación y la intención de descubrir cura.
+// Si además he declarado intención de intercambiar carta, hago untell de la intención.
++!perseguirVirusObjetivo(VIRUS) : numeroCartas(VIRUS, X) & X >= 4 & turn & not irACIE(CITY) <- findCIToReach.
+
++irACIE(CITY) : numeroCartas(VIRUS,X) & X >= 4 <- -irACIE(CITY); +irACI(CITY);
+    .send(tellAll,willDiscoverCure(VIRUS)); !irADescubrirCura(CITY,VIRUS).
+    
+// EN MI TURNO ==> Si tengo el objetivo de ir a un centro de investigación y no
+// estoy en ese centro de investigación, obtengo el siguiente objetivo cercano (de forma similar a (a)) y me muevo.
++!irADescubrirCura(CITY,VIRUS) : not at(CITY) & remainingActions(x) & x=0
+    <- moverDestinoLejano(CITY) ; !perseguirVirusObjetivo(VIRUS).
++!irADescubrirCura(CITY,VIRUS) : miTurno & not at(CITY) & remainingActions(x) & x>0
+    <- moverDestinoLejano(CITY) ; !irADescubrirCura(CITY,VIRUS).
+    
+// EN MI TURNO ==> Si tengo el objetivo de ir a un centro de investigación y estoy
+// en ese centro de investigación, descubro la cura y quito el objetivo de ir al centro
+// de investigación, quito el objetivo de perseguir un virus y hago untell de la intención de descubrir cura.
++!irADescubrirCura(CITY,VIRUS) : miTurno & at(CITY) <- discoverCure(VIRUS) ;
+    -irACI(CITY); .send(untellAll,willDiscoverCure(VIRUS)); -perseguirVirus(VIRUS); !encontrarVirusPerseguir.
+
 
 // Checks current city and moves to adjacent cell
 // Es como un roomba roto

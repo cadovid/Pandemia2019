@@ -9,6 +9,7 @@
 // Si tiene que descartarse una carta se descarta la primera que encuentra (TODO: mejorar esto)
 +cardMustBeenDiscarded : hasCard(op_expert, CARD) <- discardCard(CARD, op_expert); -cardMustBeenDiscarded.
 
+// +myCity(CITY): isCIreachable(4) <- +toCreateCI(CITY); .print("Building CI in current city").
 
 // Checks current city and moves to adjacent cell
 // Es como un roomba roto

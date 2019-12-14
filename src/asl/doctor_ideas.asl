@@ -9,6 +9,13 @@
 // Informs ready state to supplicant. Also adds ready state to its belief base
 +ack[source(supplicant)] : true <- .send(supplicant, tell, ack);
 									+ready.
+
+/*
+ * +myCardsNumber(DISEASE,4): findCIToReach(CITY) <- !getCure(DISEASE,CITY).
++!getCure(DISEASE, CITY): myCity(CITY) <- discoverCure(DISEASE).
++!getCure(DISEASE, CITY): true <- moveToFarObjective(CITY); !getCure(DISEASE, CITY).
+ */
+
 									
 // Si tiene que descartarse una carta se descarta la primera que encuentra (TODO: mejorar esto)
 +cardMustBeenDiscarded : hasCard(doctor, CARD) <- discardCard(CARD, doctor); -cardMustBeenDiscarded.

@@ -346,10 +346,10 @@ public class Game extends jason.environment.Environment {
 					} else if (aname.equals("passTurn")) {
 						consumed_action = false;
 						gs.p_actions_left = 0;
-					} else if (aname.equals("isCIreachable")) {
+					} /*else if (aname.equals("isCIreachable")) {
 						consumed_action = false;
 						isCIreachable(gs.cp.city, Integer.parseInt(action.getTerm(0).toString()));
-					} else {
+					}*/ else {
 						logger.info("Unrecognized action!" + aname);
 						return false;
 					}
