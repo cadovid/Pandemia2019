@@ -1,0 +1,11 @@
+MAS pandemic_local {
+
+	infrastructure: Centralised
+	environment: game.Game
+
+	agents:
+		mam;
+
+	aslSourcePath:
+		"src/asl";
+}

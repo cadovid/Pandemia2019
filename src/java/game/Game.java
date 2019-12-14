@@ -12,8 +12,6 @@ import graphics.Renderer;
 import _aux.Datapaths;
 import _aux.Options;
 import _aux.CustomTypes;
-import _aux.CustomTypes.Direction;
-import _aux.CustomTypes.Round;
 
 // Jason
 import jason.asSyntax.*;
@@ -26,19 +24,14 @@ import java.util.logging.*;
     Initializes game objects (board and players), and executes game
 */
 public class Game extends jason.environment.Environment {
+	public static final Literal TURN = Literal.parseLiteral("turn");
+	public static final Literal ACTIONS_LEFT = Literal
+			.parseLiteral("actions_left(" + _aux.Options.PLAYER_MAX_ACTIONS + ")");
 
 	private Logger logger = Logger.getLogger("pandemic.mas2j." + Game.class.getName());
 
-	public static final Term MOVE_ADJACENT = Literal.parseLiteral("moveAdjacent(direction)");
-	public static final Term DIRECT_FLIGHT = Literal.parseLiteral("directFlight(dest)");
-	public static final Term CHARTER_FLIGHT = Literal.parseLiteral("charterFlight(dest)");
-	public static final Term AIR_BRIDGE = Literal.parseLiteral("airBridge(dest)");
-	public static final Term BUILD_CI = Literal.parseLiteral("buildCI");
-	public static final Term TREAT_DISEASE = Literal.parseLiteral("treatDisease(disease)");
-	public static final Term SHARE_INFO = Literal.parseLiteral("shareInfo(player, city, cp_giver)");
-	public static final Term DISCOVER_CURE = Literal.parseLiteral("discoverCure(disease)");
-	public static final Term DISCARD_CARD = Literal.parseLiteral("discardCard(card, player)");
-	public static final Term PASS_TURN = Literal.parseLiteral("passTurn");
+	// Game board
+	public Board board;
 
 	// GameStatus object. Contains current game relevant data
 	public GameStatus gs;
@@ -53,25 +46,28 @@ public class Game extends jason.environment.Environment {
 	public Hashtable<String, Role> roles;
 	public Hashtable<String, Disease> diseases;
 	public Hashtable<String, City> cities;
-	// The agents must have the same alias than players
 	public Hashtable<String, Player> players;
-	public ArrayList<String> p_order; // Player order
-	public ArrayList<String> used_cities;
+
+	// Helpful lists
+	public ArrayList<String> p_order;
+
 	// List of active infections in the game
 	public ArrayList<Infection> infections;
-	public ArrayList<CityCard> c_cities;
-	public ArrayList<CityCard> c_infection;
 
-	// GRA
-	private Renderer render;
-	public CustomTypes.GameMode gm = CustomTypes.GameMode.TURN;
-	public boolean runTurn = false;
+	// Cards
+	public ArrayList<Card> c_cities;
+	public ArrayList<Card> c_infection;
 
 	// Decks
 	public Deck d_game;
 	public Deck d_infection;
 	public Deck d_game_discards;
 	public Deck d_infection_discards;
+
+	// GRA & gameplay
+	private Renderer render;
+	public CustomTypes.GameMode gm = CustomTypes.GameMode.TURN;
+	public boolean runTurn = false;
 
 	// Constructor. Loads data and initializes board.
 	public Game() {
@@ -81,43 +77,50 @@ public class Game extends jason.environment.Environment {
 		// Parses game data from init files
 		this.parseData();
 
+		// Game status variable contains relevant info
+		this.gs = new GameStatus();
+
+		// GRA - Initializes renderer
+		this.render = new Renderer(this, null, board);
+
 		if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
 			System.out.printf("[Game] INFO - Environment ready!\n");
 	}
 
-	// Called before the end of MAS execution
-	@Override
-	public void stop() {
-		super.stop();
+	/*
+	 * parseData Reads data from files and generates basic structures
+	 */
+	public void parseData() {
+		// Parses data from input files
+		this.roles = Role.parseRoles(Datapaths.role_list);
+		this.diseases = Disease.parseDis(Datapaths.disease_list);
+		this.cities = City.parseCities(Datapaths.city_list, this.diseases);
+		this.players = Player.parsePlayers(Datapaths.player_list, this.roles, this.cities);
+
+		// When generating the board, a list of used cities (out of the available ones)
+		// is created as well
+		this.board = new Board(Datapaths.map, this.cities);
+
+		// Sets counters
+		this.n_roles = this.roles.size();
+		this.n_diseases = this.diseases.size();
+		this.n_cities = this.cities.size();
+		this.n_players = this.players.size();
+
+		// Initializes the rest of aux lists
+		this.p_order = new ArrayList<String>();
+		// this.infections = new ArrayList<Infection>();
 	}
 
-	// Called before the MAS execution with the args informed in .mas2j
-	@Override
-	public void init(String[] args) {
-		// Needs to communicate number of players to supplicant. When all players are
-		// ready, supplicant should remove the init belief
-
-		// Dummy
-		// addPercept("supplicant", Literal.parseLiteral("nPlayers(" + this.n_players +
-		// ")"));
-		addPercept("supplicant", Literal.parseLiteral("nPlayers(" + this.n_players + ")"));
-
-		// Adds initial percept to supplicant agent
-		addPercept("supplicant", Literal.parseLiteral("init"));
-
-		logger.info("Starting game\n");
-		// Initializes game
-
-		// Since class is extended from environment, is already initialized, hence
-		// there's no need to create the object
-		// Game g = new Game();
-		Board board = new Board(Datapaths.map, this.cities);
-		GameStatus gs = new GameStatus(board);
-		this.gs = gs;
-		parseData();
-
-		c_cities = CityCard.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.CITY);
-		c_infection = CityCard.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.INFECTION);
+	/*
+	 * Resolves initial configuration (decks, player order, player hands)
+	 */
+	public void setGame() {
+		/*
+		 * Initializes cards and decks from City objects
+		 */
+		c_cities = Card.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.CITY);
+		c_infection = Card.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.INFECTION);
 
 		d_game = new Deck(c_cities, CustomTypes.DeckType.GAME);
 		d_infection = new Deck(c_infection, CustomTypes.DeckType.INFECTION);
@@ -139,16 +142,20 @@ public class Game extends jason.environment.Environment {
 			p.hand = d_game.draw(initHandSize);
 		}
 
-		this.p_order = Player.resolvePlayerOrder(this.players);
+		/*
+		 * Defines player order from cards
+		 */
+		p_order = Player.resolvePlayerOrder(players);
 
 		/*
 		 * Builds research center and puts players in initial city (assumes a valid set
 		 * of cities has already been loaded with the board)
 		 */
-		City starting_city = this.cities.get(this.gs.board.used_cities.get(0));
-		putInvestigationCentre(starting_city);
+		City starting_city = this.cities.get(this.board.used_cities.get(0));
+		starting_city.buildResearch(this.gs);
+
 		for (Player p : players.values()) {
-			p.setCity(starting_city);
+			p.move(starting_city);
 		}
 
 		/*
@@ -157,45 +164,36 @@ public class Game extends jason.environment.Environment {
 		 */
 
 		// Infects 3 cities with an infection level of 3 (3 cubes)
-		for (CityCard c_3 : d_infection.draw(3).values()) {
+		for (Card c_3 : d_infection.draw(3)) {
 			City infected_city = c_3.city;
 
 			// Creates an Infection object and adds it to the city
 			Infection infection = new Infection(infected_city.local_disease, infected_city, 3);
-			infected_city.infections.add(infection);
-
-			// Adds infection to list
-			this.infections.add(infection);
+			infected_city.infect(infection);
 
 			// Adds card to discard deck
 			d_infection_discards.stack(c_3);
 		}
 
 		// Infects 3 cities with an infection level of 2 (2 cubes)
-		for (CityCard c_2 : d_infection.draw(3).values()) {
+		for (Card c_2 : d_infection.draw(3)) {
 			City infected_city = c_2.city;
 
 			// Creates an Infection object and adds it to the city
 			Infection infection = new Infection(infected_city.local_disease, infected_city, 2);
-			infected_city.infections.add(infection);
-
-			// Adds infection to list
-			this.infections.add(infection);
+			infected_city.infect(infection);
 
 			// Adds card to discard deck
 			d_infection_discards.stack(c_2);
 		}
 
 		// Infects 3 cities with an infection level of 1 (1 cubes)
-		for (CityCard c_1 : d_infection.draw(3).values()) {
+		for (Card c_1 : d_infection.draw(3)) {
 			City infected_city = c_1.city;
 
 			// Creates an Infection object and adds it to the city
 			Infection infection = new Infection(infected_city.local_disease, infected_city, 1);
-			infected_city.infections.add(infection);
-
-			// Adds infection to list
-			this.infections.add(infection);
+			infected_city.infect(infection);
 
 			// Adds card to discard deck
 			d_infection_discards.stack(c_1);
@@ -204,9 +202,9 @@ public class Game extends jason.environment.Environment {
 		/*
 		 * Generates epidemic cards (as many as specified in Options)
 		 */
-		ArrayList<CityCard> epidemics = new ArrayList<CityCard>();
+		ArrayList<Card> epidemics = new ArrayList<Card>();
 		for (int i = 0; i < Options.CARD_TOTAL_EPIDEMICS; i++) {
-			CityCard epidemic = new CityCard(null, true);
+			Card epidemic = new Card(CustomTypes.CardType.EPIDEMIC);
 			epidemics.add(epidemic);
 		}
 
@@ -216,474 +214,360 @@ public class Game extends jason.environment.Environment {
 		 */
 		d_game.shove(epidemics);
 
-		gs.cp = players.get(this.p_order.get(0));
-		gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
+		this.initialBeliefs();
 
-		// GRA - Initializes renderer
-		this.render = new Renderer(this, null, board);
 		// GRA - Refresh graphics
 		this.render.refresh(null, null);
-		if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
-			System.out.printf("[Game] INFO - Environment ready!\n");
-
-		updatePercepts();
 	}
 
-	/*
-	 * parseData Reads data from files and generates basic structures
-	 */
-	public void parseData() {
-		// Parses data from input files
-		this.roles = Role.parseRoles(Datapaths.role_list);
+	// Sets initial beliefs from environment
+	public void initialBeliefs() {
+		// Position of cities: at(city,alias,x,y)
+		for (City c : this.cities.values()) {
+			addPercept(Literal.parseLiteral("at(city," + c.alias + "," + c.cell.x + "," + c.cell.y + ")"));
+		}
 
-		this.diseases = Disease.parseDis(Datapaths.disease_list);
-		this.cities = City.parseCities(Datapaths.city_list, this.diseases);
-		this.players = Player.parsePlayers(Datapaths.player_list, this.roles, this.cities);
+		// Adjacent cities: adjacent(city,adjacent_city)
+		// Iterates every key in the adjacent_cities dictionary
+		for (String c_alias : this.board.adjacent_cities.keySet()) {
 
-		// Sets counters
-		this.n_roles = this.roles.size();
-		this.n_diseases = this.diseases.size();
-		this.n_cities = this.cities.size();
-		this.n_players = this.players.size();
+			// Iterates every adjacent city assigned to c_alias city and parses the percept
+			for (String adjacent : this.board.adjacent_cities.get(c_alias)) {
+				addPercept(Literal.parseLiteral("adjacent(" + c_alias + ", " + adjacent + ")"));
+			}
+		}
 
-		// Initializes the rest of aux lists
-		this.p_order = new ArrayList<String>();
-		this.used_cities = new ArrayList<String>();
-		this.infections = new ArrayList<Infection>();
+		// Infection level of every city (sum of all infection levels):
+		// infectionLVL(city,level)
+		this.refreshPercepts_infections();
+
+		// Active diseases info: disease(disease_alias, n_spreads_left)
+		for (Disease dis : this.diseases.values()) {
+			addPercept(Literal.parseLiteral("disease(" + dis.alias + "," + dis.spreads_left + ")"));
+		}
+
+		// TODO: Infected cities: infected(city_alias,disease_alias,spread_level)
+
+		// Position of players: at(city_alias)
+		// Specifically added to each player
+		for (Player p : this.players.values()) {
+			addPercept(p.prole.alias, Literal.parseLiteral("at(" + p.city.alias + ")"));
+		}
+
+		// TODO Position of research centers: research(city_alias)
+
+		// Player cards: card(player_alias,card_city_alias)
+		for (Player p : this.players.values()) {
+			this.refreshPercepts_playerHand(p);
+		}
+
+		// Tells initial player to start its turn
+		this.refreshPercepts_playerTurn(this.players.get(this.p_order.get(0)).prole.alias);
+		
+		// Game mode
+		if(_aux.Options.GP_TIMEOUT) {
+			addPercept(Literal.parseLiteral("control_timeout("+ _aux.Options.GP_TIMEOUT_SLEEP +")"));
+		}
+		else {
+			addPercept(Literal.parseLiteral("control_manual)"));
+		}
+	}
+	
+	// Sets initial player turn beliefs
+	public void refreshPercepts_playerTurn(String p) {		
+		
+		// Sets new percepts
+		addPercept(p, TURN);
+		addPercept(p, ACTIONS_LEFT);
+	}
+	
+	// Sets player turn beliefs (replaces another turn)
+	public void refreshPercepts_playerTurn(String p_old, String p_new) {
+		
+		// Removes old percepts
+		removePercept(p_old, TURN);
+		removePercept(p_old, ACTIONS_LEFT);
+		
+		
+		// Sets new percepts
+		this.refreshPercepts_playerTurn(p_new);
+	}
+	
+	// Refreshes percepts regarding a player's hand
+	public void refreshPercepts_playerHand(Player p) {
+		removePercept(Literal.parseLiteral("card(" + p.prole.alias + ",_)"));
+		
+		ArrayList<Card> phand = p.hand;
+		for (Card c : phand) {
+			addPercept(this.players.get(this.p_order.get(0)).prole.alias,
+					Literal.parseLiteral("card(" + p.prole.alias + "," + c.city.alias + ")"));
+		}
+	}
+
+	// Refreshes percepts regarding active infections and infection level of each
+	// city
+	public void refreshPercepts_infections() {
+		removePercept(Literal.parseLiteral("infectionLVL(_, _)"));
+		
+		for (String c : this.board.used_cities) {
+			int ilevel = 0;
+
+			// Iterates infection in every city
+			for (Infection i : this.cities.get(c).infections.values()) {
+				ilevel += i.spread_level;
+			}
+
+			// Adds percept
+			addPercept(Literal.parseLiteral("infectionLVL(" + c + "," + ilevel + ")"));
+		}
+	}
+	
+	// Buttons behaviour
+	public void control_feedback(_aux.CustomTypes.GameMode gm) {
+		removePercept(Literal.parseLiteral("control_manual"));
+		removePercept(Literal.parseLiteral("control_timeout(_)"));
+		
+		
+		if(gm == _aux.CustomTypes.GameMode.TIMESTAMP) {
+			addPercept(Literal.parseLiteral("control_timeout("+ _aux.Options.GP_TIMEOUT_SLEEP +")"));
+		}
+		
+		// Manual control
+		else {
+			// control_run is removed from agent when its turn finishes
+			
+			addPercept(Literal.parseLiteral("control_manual"));
+			addPercept(Literal.parseLiteral("control_run"));
+		}
+	}
+
+	// TODO: Implement the rest of methods regarding percepts update (each unique
+	// set of percepts must be handled properly)
+
+	// TODO: Resolve an epidemic. This method should be called whenever an epidemic
+	// card is drawn
+	public void epidemic() {
+		return;
 	}
 
 	@Override
-	public boolean executeAction(String ag, Structure action) {
-		logger.info(ag + " doing: " + action);
-		boolean consumed_action = false;
-		try {
-			if (gs.round == Round.ACT) {
-				if (action.equals(MOVE_ADJACENT)) {
-					if (moveAdjacent(gs.cp, Direction.values()[((int) ((NumberTerm) action.getTerm(0)).solve())])) {
-						consumed_action = true;
-						automaticDoctorDiseasesTreatment();
-					} else {
-						return false;
-					}
-				} else if (action.equals(DIRECT_FLIGHT)) {
-					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (directFlight(gs.cp, dest)) {
-						consumed_action = true;
-						automaticDoctorDiseasesTreatment();
-					}
-				} else if (action.equals(CHARTER_FLIGHT)) {
-					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (charterFlight(gs.cp, dest)) {
-						consumed_action = true;
-						automaticDoctorDiseasesTreatment();
-					}
-				} else if (action.equals(AIR_BRIDGE)) {
-					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (airBridge(gs.cp, dest)) {
-						consumed_action = true;
-						automaticDoctorDiseasesTreatment();
-					}
-				} else if (action.equals(BUILD_CI)) {
-					if (putInvestigationCentre(gs.cp.getCity())) {
-						consumed_action = true;
-					}
-				} else if (action.equals(TREAT_DISEASE)) {
-					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-					Disease dis = diseases.get(dis_alias);
-					City city = gs.cp.getCity();
-					if (dis.treatDisease(city.getInfection(dis), gs.cp)) {
-						consumed_action = true;
-					} else {
-						consumed_action = false;
-					}
-				} else if (action.equals(SHARE_INFO)) {
-					String player_alias = ((StringTerm) action.getTerm(0)).toString();
-					String city_name = ((StringTerm) action.getTerm(1)).toString();
-					boolean cp_giver = Boolean.parseBoolean(((StringTerm) action.getTerm(1)).toString());
-					shareInfo(player_alias, city_name, cp_giver);
-					consumed_action = true;
-				} else if (action.equals(DISCOVER_CURE)) {
-					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-					if (discoverCure(gs.cp, dis_alias)) {
-						consumed_action = true;
-					} else {
-						return false;
-					}
-				} else if (action.equals(PASS_TURN)) {
-					consumed_action = false;
-					gs.p_actions_left = 0;
-				} else {
-					return false;
-				}
-			}
-			if (action.equals(DISCARD_CARD)) {
-				String city = ((StringTerm) action.getTerm(0)).toString();
-				String player_alias = ((StringTerm) action.getTerm(1)).toString();
-				players.get(player_alias).removeCard(city);
-				// This action does never consume action, it happens in draw phase
-				// or when sharing info with another player
-				consumed_action = false;
-			} else {
+	// Needs to define the agent individually
+	public boolean executeAction(String agName, Structure action) {
+		// Resolves action name and player (agName must be equal to the role alias)
+		String aname = action.getFunctor();
+		Player p = this.roles.get(agName).player;
+
+		logger.info("Trying to execute action...");
+		if (aname.equals("init")) {
+			logger.info("Adding percept.");
+			addPercept(Literal.parseLiteral("init"));
+			return true;
+		}
+		
+		// Removes a percept from the caller agent
+		else if (aname.equals("removeAgPercept")) {
+			if (action.getArity() != 1) {
+				logger.info("[executeAction] - Wrong number of params for action \"removeAgPercept\"");
 				return false;
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+			
+			String perc = action.getTerm(0).toString();
+			removePercept(agName, Literal.parseLiteral(perc));
+			return true;
+			
+		}
+		
+		// Removes a percept from the environment
+		else if (aname.equals("removePercept")) {
+			if (action.getArity() != 1) {
+				logger.info("[executeAction] - Wrong number of params for action \"removePercept\"");
+				return false;
+			}
+			
+			String perc = action.getTerm(0).toString();
+			
+			removePercept(Literal.parseLiteral(perc));
+			return true;
+			
 		}
 
-		if (gs.round == Round.ACT) {
-			if (consumed_action) {
-				gs.p_actions_left--;
+		// Ends agent turn and triggers next player
+		// New player draws cards from deck
+		else if (aname.equals("turnover")) {
+			// Game control feedback
+			removePercept(Literal.parseLiteral("control_run"));
+			
+			// Last player alias & order
+			String old_player = this.roles.get(agName).player.alias;
+			int old_player_order = this.p_order.indexOf(old_player);
+
+			// New player alias (player role is used to identify the agent)
+			// Uses modulo operation to iterate players as a circular buffer (once the last
+			// player has ended its turn, the first player starts again)
+			String new_player = this.p_order.get(Math.floorMod(old_player_order + 1, this.n_players));
+
+			// Draw player cards
+			ArrayList<Card> old_player_draw = this.d_game.draw(_aux.Options.PLAYER_DRAW_CARDS);
+
+			// Game deck depleted. Game over
+			if (old_player_draw == null) {
+				logger.info("Game deck out of cards... Game Over!");
+				this.stop();
+				
+				return true;
 			}
-			// It should never be lower than 0, but in case
-			if (gs.p_actions_left <= 0) {
-				// Set to 0 because the draw phase begins
-				gs.p_actions_left = 0;
-				gs.round = Round.STEAL;
-			}
-		}
-		if (gs.round == Round.STEAL) {
-			if (gs.cp.getHand().size() <= Options.PLAYER_MAX_CARDS) {
-				while (gs.round == Round.STEAL) {
-					drawPLayerCard(gs.cp);
-					gs.drawnCards++;
-					if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
-						// One card must be discarded, so the actions are delayed
-						// until the agent calls the discard action
-						break;
-					} else if (gs.drawnCards == Options.PLAYER_DRAW_CARDS) {
-						gs.round = Round.INFECT;
-						for (int i = 0; i < gs.infection_levels[gs.current_infection_level]; i++) {
-							drawInfectCard();
-						}
-						gs.round = Round.ACT;
-						gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
-						gs.cp = nextPlayer(gs.cp);
-						// For the next turn
-						gs.drawnCards = 0;
+
+			// Extends player hand
+			else {
+				// Checks whether an EPIDEMIC card has been drawn
+				// Iterates list backwards, so elements can be removed without having to alter the moving index
+				for(int i = old_player_draw.size(); i > 0; i--) {
+					if(old_player_draw.get(i-1).type == _aux.CustomTypes.CardType.EPIDEMIC) {
+						
+						// Discards card from player hand
+						this.d_game_discards.stack(old_player_draw.get(i-1));
+						old_player_draw.remove(i-1);
+						this.epidemic();
+						
 					}
 				}
-			} else {
-				System.out.printf("[Game] WARNING: Agent must discard card but it does not call the action!!\n");
-			}
-		}
+				
+				// Adds drawn cards to player hand
+				ArrayList<Card> old_player_hand = this.players.get(old_player).hand;
+				old_player_hand.addAll(old_player_draw);
 
-		updatePercepts();
+				// If player hand exceeds size limit, some cards must be discarded
+				int n_cards_over = old_player_hand.size() - _aux.Options.PLAYER_MAX_CARDS;
 
-		try {
-			Thread.sleep(200);
-		} catch (Exception e) {
-		}
-		informAgsEnvironmentChanged();
-		return true;
-	}
+				// TODO: Discard must follow some strategy, the actual implementation just
+				// removes cards from the beginning of the hand. This heavily depends on the agent implementation...
+				if (n_cards_over > 0) {
+					for (; n_cards_over > 0; n_cards_over--) {
+						old_player_hand.remove(0);
+					}
+				}
 
-	/** creates the agents perception */
+				// Updates global percepts (flushes old percepts regarding player hand and add
+				// new ones)
+				this.refreshPercepts_playerHand(this.players.get(old_player));
 
-	void updatePercepts() {
-		clearPercepts();
-		logger.info(gs.cp.alias);
+				// Draw infection cards (as per the current infection rate)
+				for (int i = 0; i < this.gs.infection_levels[this.gs.current_infection_level]; i++) {
+					Card draw = this.d_infection.draw();
 
-		// All percepts are added to all agents except the remaining actions,
-		// that depends on the agent
-		for (Player p : players.values()) {
-			if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
-				addPercept(p.alias, Literal.parseLiteral("cardMustBeenDiscarded"));
-			}
-			if (gs.cp.equals(p)) {
-				addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));
-			} else {
-				addPercept(p.alias, Literal.parseLiteral("left_actions(" + 0 + ")"));
-			}
-		}
+					// Infection game depleted. Game Over
+					if (draw == null) {
+						logger.info("Infection deck out of cards... Game Over!");
+						this.stop();
+						
+						return true;
+					}
+					City infected_city = draw.city;
 
-		// Percepts for cards and location of players
-		for (Player player : this.players.values()) {
-			addPercept(Literal.parseLiteral("at(" + player.alias + "," + player.city.alias + ")"));
-			for (String new_card : player.getHand().keySet()) {
-				addPercept(Literal.parseLiteral("hasCard(" + player.alias + "," + new_card + ")"));
-			}
-		}
+					// Creates an Infection object and adds it to the city
+					Infection infection = new Infection(infected_city.local_disease, infected_city, 1);
+					infected_city.infect(infection);
 
-		// Percepts for spread level and CI per city
-		for (City city : this.cities.values()) {
-			if (city.canResearch()) {
-				addPercept(Literal.parseLiteral("hasCI(" + city.alias + ")"));
-			}
-			for (Infection infection : city.getInfections()) {
-				addPercept(Literal.parseLiteral("spreadLevel(" + infection.city_host.alias + "," + infection.dis.alias
-						+ "," + infection.spread_level + ")"));
-			}
-		}
+					// Adds card to discard deck
+					d_infection_discards.stack(draw);
 
-		// Active infections
-		for (Infection i : this.infections) {
-			addPercept(Literal
-					.parseLiteral("infected(" + i.city_host.alias + "," + i.dis.alias + "," + i.spread_level + ")"));
-		}
-
-		// Percepts for disease cures
-		for (Disease dis : this.diseases.values()) {
-			if (dis.cure) {
-				addPercept(Literal.parseLiteral("isCure(" + dis.alias + ")"));
-			}
-		}
-
-		// TODO: percepts for all agents
-		// addPercept(Literal.parseLiteral(""));
-	}
-
-	/**
-	 * Returns the next player in function of the current player.
-	 * 
-	 * @param Player: cp, the current player.
-	 * @return Player: the next player.
-	 */
-	public Player nextPlayer(Player cp) {
-		boolean current_found = false;
-		String next_alias = null;
-		Player next_player = null;
-		for (String alias : p_order) {
-			if (current_found) {
-				next_alias = alias;
-			}
-			if (alias.equals(cp.alias)) {
-				current_found = true;
-			}
-		}
-		// The next one is the first player
-		if (next_alias == null && current_found) {
-			next_alias = p_order.get(0);
-		}
-		next_player = players.get(next_alias);
-
-		return next_player;
-	}
-
-	public void shareInfo(String player, String city_name, boolean cp_giver) {
-		Player giver, receiver;
-		// Select who gives the card and who receives it
-		if (cp_giver) {
-			giver = this.gs.cp;
-			receiver = this.players.get(player);
-		} else {
-			receiver = this.gs.cp;
-			giver = this.players.get(player);
-		}
-		CityCard card = giver.removeCard(city_name);
-		// The discard percept is added in updatePercepts() after doing the
-		// action
-
-		receiver.addCard(card);
-	}
-
-	public boolean drawPLayerCard(Player player) {
-		// Si no quedan cartas que robar, devuelve false
-		boolean enoughCards = false;
-		if (!this.d_game.cards.isEmpty()) {
-			enoughCards = true;
-			CityCard new_card = this.d_game.draw();
-			this.d_game_discards.stack(new_card);
-			if (new_card.isEpidemic()) {
-				// propagate
-				increaseInfectionLevel();
-				// infect and intensify
-				drawInfectCard();
-			} else {
-				player.addCard(new_card);
-			}
-		}
-		return enoughCards;
-	}
-
-	public boolean drawInfectCard() {
-		// Si no quedan cartas que robar, devuelve false
-		boolean enoughCards = false;
-		if (!this.d_infection.cards.isEmpty()) {
-			enoughCards = true;
-			// The last card is drawn from the bottom
-			CityCard new_card = this.d_infection.bottomDraw();
-			this.d_infection_discards.stack(new_card);
-			infect(new_card.getCity(), new_card.getDisease());
-			// intensify: the discarded icards are shuffled and put on top
-			// (last items)
-			d_infection_discards.shuffle();
-			d_infection.atop(d_infection_discards.cards);
-			this.d_infection_discards.cards = new ArrayList<CityCard>();
-		}
-
-		return enoughCards;
-	}
-
-	/*
-	 * discoverCure Remove to the player hands needed cards and set in the selected
-	 * disease the attribute cure to True
-	 */
-	public boolean discoverCure(Player current_player, String diseaseAlias) {
-		Disease disease = this.diseases.get(diseaseAlias);
-		ArrayList<String> to_discard = new ArrayList<String>();
-		boolean satisfied = false;
-		for (Map.Entry<String, CityCard> entry : current_player.getHand().entrySet()) {
-			City city = entry.getValue().getCity();
-			if (city.local_disease.alias == diseaseAlias) {
-				to_discard.add(entry.getKey());
-				if (to_discard.size() == 5
-						|| (to_discard.size() == 4 && current_player.getRole().alias.equals("genetist"))) {
-					satisfied = true;
-					break;
+					// Updates global percepts (flushes old percepts regarding infections and add
+					// new ones)
+					this.refreshPercepts_infections();
 				}
 			}
-		}
-		if (satisfied) {
-			for (String city_alias : to_discard) {
-				current_player.removeCard(city_alias);
-			}
-			disease.setCure(true);
-			automaticDoctorDiseasesTreatment();
+
+			// Updates turns
+			this.refreshPercepts_playerTurn(agName, this.players.get(new_player).prole.alias);
+
+			logger.info("Turn changed from " + agName + " to " + this.players.get(new_player).prole.alias);
 
 			return true;
-		} else {
-			return false;
+
 		}
-	}
 
-	public boolean moveAdjacent(Player current_player, Direction destination) {
-		boolean moved = false;
-
-		if (current_player.getCity().getNeighbors().get(destination) != null) {
-			current_player.getCity().removePlayer(current_player);
-			current_player.setCity(current_player.getCity().getNeighbors().get(destination));
-			current_player.getCity().putPlayer(current_player);
-			moved = true;
-		}
-		return moved;
-	}
-
-	/**
-	 * Flies to the destination city discarding one card of the hand of that city.
-	 * 
-	 * @param destination
-	 * @return true if moved and false otherwise.
-	 */
-	public boolean directFlight(Player current_player, City destination) {
-		boolean moved = false;
-		for (Card card : current_player.getHand().values()) {
-			if (card.getCity() == destination) {
-				current_player.getCity().removePlayer(current_player);
-				current_player.setCity(destination);
-				current_player.getCity().putPlayer(current_player);
-				current_player.getHand().remove(card.getCity().alias);
-				return true;
+		// Moves agent to a city
+		else if (aname.equals("moveto")) {
+			if (action.getArity() != 1) {
+				logger.info("[executeAction] - Wrong number of params for action \"moveto\"");
+				return false;
 			}
-		}
 
-		return moved;
-	}
+			String starting_city = p.city.alias;
+			String target_city = action.getTerm(0).toString();
 
-	/**
-	 * Flies to the destination city discarding one card of the hand of the current
-	 * city.
-	 * 
-	 * @param destination
-	 * @return true if moved and false otherwise.
-	 */
-	public boolean charterFlight(Player current_player, City destination) {
-		boolean moved = false;
-		for (Card card : current_player.getHand().values()) {
-			if (card.getCity() == current_player.getCity()) {
-				current_player.getCity().removePlayer(current_player);
-				current_player.setCity(destination);
-				current_player.getCity().putPlayer(current_player);
-				current_player.getHand().remove(card.getCity().alias);
-				return true;
-			}
-		}
+			// Updates objects
+			p.move(this.cities.get(target_city));
 
-		return moved;
-	}
+			// Updates beliefs
+			removePercept(agName, Literal.parseLiteral("at(" + starting_city + ")"));
+			addPercept(agName, Literal.parseLiteral("at(" + target_city + ")"));
 
-	/**
-	 * Flies to the destination city if there is a investigation center in the
-	 * current city and another one in the destination city.
-	 * 
-	 * @param destination
-	 * @return true if moved and false otherwise.
-	 */
-	public boolean airBridge(Player current_player, City destination) {
-		boolean moved = false;
-		if (current_player.getCity().canResearch() && destination.canResearch()) {
-			current_player.getCity().removePlayer(current_player);
-			current_player.setCity(destination);
-			current_player.getCity().putPlayer(current_player);
-			moved = true;
-		}
+			logger.info("Moved");
 
-		return moved;
-	}
-
-	/**
-	 * Puts a investigation centre in the city. In the real game there are 6
-	 * investigation centers. Infinite possible research centres seems a reasonable
-	 * relaxation to the problem.
-	 */
-	public boolean putInvestigationCentre(City city) {
-		if (gs.current_research_centers < Options.MAX_RESEARCH_CENTERS - 1) {
-			city.can_research = true;
-			gs.current_research_centers++;
 			return true;
-		} else {
-			return false;
 		}
-	}
 
-	void automaticDoctorDiseasesTreatment() {
-		if (gs.cp.getRole().alias.equals("doctor")) {
-			for (Infection e : gs.cp.getCity().getInfections()) {
-				if (e.dis.cure) {
-					e.dis.heal(e.spread_level);
-					e.spread_level = 0;
-				}
+		// Reduces the infection level of a city
+		// TODO: This must be redefined: heal action should take 2 params: city &
+		// disease, so the agent can heal a specific disease
+		else if (aname.equals("heal")) {
+			if (action.getArity() != 1) {
+				logger.info("[executeAction] - Wrong number of params for action \"moveto\"");
+				return false;
 			}
-		}
-	}
 
-	/*
-	 * Infecta las ciudades de manera recursiva
-	 */
-	public void infect(City city, Disease dis) {
+			String city_alias = action.getTerm(0).toString();
+			City city = this.cities.get(city_alias);
 
-		Infection infection = city.getInfection(dis);
+			// TODO: (Dummy selection: takes the first disease in the list and reduces its
+			// spread level by 1)
+			List<String> keysAsArray = new ArrayList<String>(city.infections.keySet());
+			Disease dis = city.infections.get(keysAsArray.get(0)).dis;
+			city.heal(dis, 1);
 
-		// if the disease is cured nothing happens
-		if (!dis.getCure()) {
-			// If max spread level exceeded, then an outbreak occurs.
-			if (infection.spread_level + 1 > Options.MAX_SPREADS_PER_CITY) {
+			// Recomputes infection level
+			int ilevel = 0;
 
-				// Updates disease total spreads
-				dis.spread(Options.MAX_SPREADS_PER_CITY - infection.spread_level);
-				infection.spread_level = Options.MAX_SPREADS_PER_CITY;
-
-				// Expands to adjacent cities
-				for (City neigh : city.getNeighbors().values()) {
-					infect(neigh, dis);
-				}
-			} else {
-				infection.spread_level = infection.spread_level + 1;
+			// Iterates infection in every city
+			for (Infection i : city.infections.values()) {
+				ilevel += i.spread_level;
 			}
+
+			// Updates beliefs
+			removePercept(agName, Literal.parseLiteral("infectionLVL(" + city_alias + "," + (ilevel - 1) + ")"));
+			addPercept(agName, Literal.parseLiteral("infectionLVL(" + city_alias + "," + (ilevel) + ")"));
+
+			logger.info("Healed");
+
+			return true;
+
 		}
+		
+		// Moves agent to a random nearby city
+		else if (aname.equals("moveto_adjacentRandom")) {
+			//TODO: Random movement to adjacent cells
+		}
+		
+		else {
+			logger.info("executing: " + action + ", but not implemented!");
+		}
+
+		return false;
 	}
 
-	/*
-	 * Incrementa el nivel de epidemia con respecto al array de niveles
-	 */
-	public boolean increaseInfectionLevel() {
-		boolean increased = false;
-
-		if (gs.current_infection_level < gs.infection_levels.length) {
-			gs.current_infection_level++;
-			increased = true;
-		}
-
-		return increased;
+	// Called before the end of MAS execution
+	@Override
+	public void stop() {
+		super.stop();
+		
+		addPercept(Literal.parseLiteral("gameover"));
 	}
 
+	// Called before the MAS execution with the args informed in .mas2j
+	@Override
+	public void init(String[] args) {
+		// Must settle initial game status (both, beliefs and configuration)
+		this.setGame(); // RAWR - could be redundant; remove wrapper and define functionality here
+	}
 }

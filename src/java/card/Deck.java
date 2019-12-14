@@ -10,17 +10,17 @@ import city.*;
  * Must define methods to draw, shuffle & append cards to it
  */
 public class Deck {
-	public ArrayList<CityCard> cards;
+	public ArrayList<Card> cards;
 	public CustomTypes.DeckType type;
 
 	// Initializes empty deck
 	public Deck(CustomTypes.DeckType t) {
 		this.type = t;
-		this.cards = new ArrayList<CityCard>();
+		this.cards = new ArrayList<Card>();
 	}
 
 	// Initializes deck out of a list of cards
-	public Deck(ArrayList<CityCard> cs, CustomTypes.DeckType t) {
+	public Deck(ArrayList<Card> cs, CustomTypes.DeckType t) {
 		this.type = t;
 		this.cards = cs;
 	}
@@ -31,46 +31,63 @@ public class Deck {
 	}
 
 	// Appends a set of cards to the top
-	public void atop(ArrayList<CityCard> stack) {
+	public void atop(ArrayList<Card> stack) {
 		stack.addAll(this.cards);
 		this.cards = stack;
 	}
 
 	// Draws a card from the top of the deck
-	public CityCard draw() {
-		return this.cards.remove(0);
-	}
-	
-	public CityCard bottomDraw() {
-		return this.cards.remove(this.cards.size() - 1);
-	}
-
-	// Draws n cards from the deck
-	public HashMap<String, CityCard> draw(int n) {
-		HashMap<String, CityCard> cards = new HashMap<String, CityCard>();
-
-		while (n-- > 0) {
-			CityCard card = this.draw();
-			cards.put(card.city.alias, card);
+	public Card draw() {
+		Card draw;
+		if (this.cards.size() > 0) {
+			draw = this.cards.remove(0);
 		}
+
+		else {
+			draw = null;
+		}
+		return draw;
+	}
+
+	// Draws n cards from the deck (returns a sorted list)
+	public ArrayList<Card> draw(int n) {
+		ArrayList<Card> cards = new ArrayList<Card>();
+		Card draw;
+		//System.out.println("cards BEFORE drawing "+this.cards.size()+" n"+n);
+		while (n-- > 0) {
+			draw = this.draw();
+
+			if (draw != null) {
+				cards.add(draw);
+			}
+
+			// If can't draw the specified number of cards from the deck, a null object is
+			// returned (result must be handled properly elsewhere)
+			else {
+				cards = null;
+				break;
+			}
+
+		}
+		//System.out.println("cards AFTER drawing "+this.cards.size());
 
 		return cards;
 	}
 
 	// Stacks a card to the top of the deck
-	public void stack(CityCard c) {
+	public void stack(Card c) {
 		this.cards.add(0, c);
 	}
 
 	// Stacks a list of cards to the top of the deck
-	public void stack(ArrayList<CityCard> cl) {
-		for (CityCard c : cl) {
+	public void stack(ArrayList<Card> cl) {
+		for (Card c : cl) {
 			this.stack(c);
 		}
 	}
 
 	// Inserts a set of cards densely distributed in the deck
-	public void shove(ArrayList<CityCard> cards) {
+	public void shove(ArrayList<Card> cards) {
 		int size_deck = this.cards.size();
 		int size_shove = cards.size();
 
