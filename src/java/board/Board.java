@@ -231,7 +231,7 @@ public class Board {
 			} else {
 				new_x = pos_x - 1;
 			}
-			adjacent = board.map[new_x][pos_y];
+			adjacent = board.map[pos_y][new_x];
 			local_adjacents.put(Direction.LEFT, adjacent.getCity());
 
 			// Adjacent city, right
@@ -240,7 +240,7 @@ public class Board {
 			} else {
 				new_x = pos_x + 1;
 			}
-			adjacent = board.map[new_x][pos_y];
+			adjacent = board.map[pos_y][new_x];
 			local_adjacents.put(Direction.RIGHT, adjacent.getCity());
 
 			// Adjacent city, up
@@ -249,7 +249,7 @@ public class Board {
 			} else {
 				new_y = pos_y - 1;
 			}
-			adjacent = board.map[pos_x][new_y];
+			adjacent = board.map[new_y][pos_x];
 			local_adjacents.put(Direction.UP, adjacent.getCity());
 
 			// Adjacent city, down
@@ -258,7 +258,7 @@ public class Board {
 			} else {
 				new_y = pos_y + 1;
 			}
-			adjacent = board.map[pos_x][new_y];
+			adjacent = board.map[new_y][pos_x];
 			local_adjacents.put(Direction.DOWN, adjacent.getCity());
 			city.setNeighbors(local_adjacents);
 		}

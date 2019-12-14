@@ -1,6 +1,7 @@
 package game;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.ThreadLocalRandom;
 
 // Local imports
@@ -116,7 +117,10 @@ public class Game extends jason.environment.Environment {
 		d_infection = new Deck(c_infection, CustomTypes.DeckType.INFECTION);
 		d_game_discards = new Deck(CustomTypes.DeckType.GAME);
 		d_infection_discards = new Deck(CustomTypes.DeckType.INFECTION);
-
+		
+		// set neighbors to each city
+		Board.resolveAdjacentCities(gs.board, cities);
+		
 		/*
 		 * Shuffles decks
 		 */
@@ -342,6 +346,9 @@ public class Game extends jason.environment.Environment {
 					} else if (aname.equals("passTurn")) {
 						consumed_action = false;
 						gs.p_actions_left = 0;
+					} else if (aname.equals("isCIreachable")) {
+						consumed_action = false;
+						isCIreachable(gs.cp.city, Integer.parseInt(action.getTerm(0).toString()));
 					} else {
 						logger.info("Unrecognized action!" + aname);
 						return false;
@@ -809,17 +816,20 @@ public class Game extends jason.environment.Environment {
 		}
 	}
 
-	public boolean isCIReachable(City current_city, int left_moves) {
-		boolean isReachable = false;
+	public boolean isCIreachable(City current_city, int left_moves){	
 		if (current_city.canResearch()) {
-			isReachable = true;
-		} else {
+			return true;
+		}else if (left_moves == 0){
+			return false;
+		}else{
 			Collection<City> neighbors = current_city.getNeighbors().values();
-			for (City c : neighbors) {
-				isReachable = isReachable || isCIReachable(c, left_moves - 1);
+			boolean isReachable = false;
+			for(City c: neighbors) {
+				isReachable = isReachable || isCIreachable(c, left_moves - 1);
 			}
+			return isReachable;
 		}
-		return isReachable;
+		
 	}
 
 	void automaticDoctorDiseasesTreatment() {
