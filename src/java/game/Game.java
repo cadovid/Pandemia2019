@@ -79,6 +79,7 @@ public class Game extends jason.environment.Environment {
 	public Deck d_infection;
 	public Deck d_game_discards;
 	public Deck d_infection_discards;
+	
 
 	// Constructor. Loads data and initializes board.
 	public Game() {
@@ -139,7 +140,7 @@ public class Game extends jason.environment.Environment {
 		 * of cities has already been loaded with the board)
 		 */
 		City starting_city = this.cities.get(this.gs.board.used_cities.get(0));
-		putInvestigationCentre(starting_city);
+		putInvestigationCentre(starting_city, true);
 		for (Player p : players.values()) {
 			p.setCity(starting_city);
 		}
@@ -309,7 +310,7 @@ public class Game extends jason.environment.Environment {
 							automaticDoctorDiseasesTreatment();
 						}
 					} else if (aname.equals("buildCI")) {
-						if (putInvestigationCentre(gs.cp.getCity())) {
+						if (putInvestigationCentre(gs.cp.getCity(), false)) {
 							consumed_action = true;
 						}
 					} else if (aname.equals("treatDisease")) {
@@ -378,7 +379,7 @@ public class Game extends jason.environment.Environment {
 						}
 						gs.drawnCards++;
 						logger.info("Drawn cards: " + gs.drawnCards);
-					}					
+					}
 					this.render.refresh(null, null);
 					if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
 						// One card must be discarded, so the actions are delayed
@@ -509,6 +510,20 @@ public class Game extends jason.environment.Environment {
 			addPercept(Literal.parseLiteral("control_timeout(" + _aux.Options.GP_TIMEOUT_SLEEP + ")"));
 		} else {
 			addPercept(Literal.parseLiteral("control_manual)"));
+		}
+
+		// Number of cards of each virus
+		for (Player p : players.values()) {
+			for (Disease dis : diseases.values()) {
+				int n_cards = 0;
+				for (CityCard c : p.hand.values()) {
+					if (c.city.local_disease == dis) {
+						n_cards++;
+					}
+				}
+				addPercept(p.alias, Literal.parseLiteral("myCardsNumber(" + dis.alias + "," + n_cards + ")"));
+				addPercept(Literal.parseLiteral("cardsNumber(" + p.alias + "," + dis.alias + "," + n_cards + ")"));
+			}
 		}
 
 		// This function is called when buttons are pressed
@@ -773,14 +788,38 @@ public class Game extends jason.environment.Environment {
 	 * investigation centers. Infinite possible research centres seems a reasonable
 	 * relaxation to the problem.
 	 */
-	public boolean putInvestigationCentre(City city) {
+	public boolean putInvestigationCentre(City city, boolean init) {
 		if (gs.current_research_centers < Options.MAX_RESEARCH_CENTERS - 1) {
-			city.can_research = true;
-			gs.current_research_centers++;
-			return true;
+			if (init || gs.cp.alias == "op_expert") {
+				city.can_research = true;
+				gs.current_research_centers++;
+				return true;
+			} else {
+				// The card of the city must been discarded
+				for (Card card : gs.cp.getHand().values()) {
+					if (city.equals(card.city)) {
+						gs.cp.getHand().remove(card.getCity().alias);
+						return true;
+					}
+				}
+				return false;
+			}
 		} else {
 			return false;
 		}
+	}
+
+	public boolean isCIReachable(City current_city, int left_moves) {
+		boolean isReachable = false;
+		if (current_city.canResearch()) {
+			isReachable = true;
+		} else {
+			Collection<City> neighbors = current_city.getNeighbors().values();
+			for (City c : neighbors) {
+				isReachable = isReachable || isCIReachable(c, left_moves - 1);
+			}
+		}
+		return isReachable;
 	}
 
 	void automaticDoctorDiseasesTreatment() {
@@ -810,12 +849,15 @@ public class Game extends jason.environment.Environment {
 				dis.spread(Options.MAX_SPREADS_PER_CITY - infection.spread_level);
 				infection.spread_level = Options.MAX_SPREADS_PER_CITY;
 
+				logger.info("outbreak");
+
 				// Expands to adjacent cities
 				for (City neigh : city.getNeighbors().values()) {
 					infect(neigh, dis);
 				}
 			} else {
 				infection.spread_level = infection.spread_level + 1;
+				logger.info(city.alias + " infected of " + dis.alias + ", level: " + infection.spread_level);
 			}
 		}
 	}
