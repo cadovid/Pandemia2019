@@ -15,8 +15,14 @@ public final class Options {
 	public static final int CARD_TOTAL_EPIDEMICS = 4;
 	public static final int MAX_RESEARCH_CENTERS = 48;
 
+	// Gameplay options
+	// If timestamp mode active, the game will run automatically til the end waiting
+	// (GP_TIMESTAMP_SLEEP) between player turns
+	public static final int GP_TIMEOUT_SLEEP = 1000;
+	public static final boolean GP_TIMEOUT = false;
+
 	// Program options
-	public static final CustomTypes.LogLevel LOG = CustomTypes.LogLevel.INFO;
+	public static final CustomTypes.LogLevel LOG = CustomTypes.LogLevel.CRITICAL;
 
 	// Private constructor. This class shouldn't be initialized
 	private Options() {

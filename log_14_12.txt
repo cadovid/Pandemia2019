@@ -1,0 +1,38 @@
+********************
+Agente bobo
+********************
+Únicamente tiene implementado un plan a seguir (wandering).
+Evalúa las casillas colindantes y se mueve a aquella que tiene mayor número de infecciones en conjunto. En caso de que ya se encuentre en la casilla con mayor infección, cura una unidad(reduce un cubo de enfermedad).
+
+
+********************
+Gestión de turnos
+********************
+Se añade un percept "turn" al jugador al que le toca el turno, junto con otro de tipo "actions_left(número)". actions_left funciona como contador, y es el propio agente el que lo va descontando acción a acción. Cuando llega a 0 llama a la función "turnover", que se trata desde el executeAction, cambiando el turno a otro jugador.
+
+
+********************
+Finalización de la partida
+********************
+Las condiciones de finalización se comprueban en las acciones que puedan conllevar el final de la partida.
+En el código actual se comprueba el tamaño de las barajas al robar de ellas. En caso de que en algún momento no se pueda robar el número deseado de cartas la partida termina.
+El fin de la partida se gestiona añadiendo el percept "gameover". Adicionalmente se llama a la función interna ".drop_all_intentions" SOBRE CADA AGENTE para eliminar los planes inacabados (evita que jason muestre cosas feas).
+
+
+********************
+Control de la partida
+********************
+Con los botones de la interfaz. Puede ser manual, o automático con retardo. Va a venir bien en la presentación.
+
+
+********************
+Inclusión de nuevos agentes
+********************
+Los agentes se deben llamar como el ALIAS del rol que representan (ej. Mamporrero -> mam). Se utiliza como convenio para comunicar entorno java y agentes jason.
+
+
+********************
+Estado general
+********************
+El agente bobo interacciona con el entorno como lo haría bajo las restricciones del juego real, robando cartas y decidiendo acciones cuando debe.
+

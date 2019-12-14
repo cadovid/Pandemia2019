@@ -20,6 +20,7 @@ public class Board {
 	public int n_rows;
 
 	public ArrayList<String> used_cities;
+	public Hashtable<String, ArrayList<String>> adjacent_cities; // Resolves adjacency between cities
 
 	// Constructors
 	public Board(Cell[][] map, int w, int h) {
@@ -42,6 +43,7 @@ public class Board {
 	 */
 	public Board(String datapath, Hashtable<String, City> valid_cities) {
 		this.used_cities = new ArrayList<String>();
+		this.adjacent_cities = new Hashtable<String, ArrayList<String>>();
 
 		// Read csv lines creating stream from file
 		try {
@@ -129,6 +131,51 @@ public class Board {
 					n_col = 0;
 				}
 
+				// Resolves adjacencies
+
+				for (int i = 0; i < n_rows; i++) {
+
+					// Iterates every cell and defines its adjacencies
+					for (int j = 0; j < n_cols; j++) {
+						// If cell contains a valid city, evaluates its surroundings
+						if (this.map[i][j] != null) {
+							City c = this.map[i][j].city;
+							ArrayList<String> c_adjacent = new ArrayList<String>();
+							Cell cleft = this.map[Math.floorMod(i - 1, n_rows)][j],
+									ctop = this.map[i][Math.floorMod(j - 1, n_cols)],
+									cright = this.map[Math.floorMod(i + 1, n_rows)][j],
+									cbottom = this.map[i][Math.floorMod(j + 1, n_cols)];
+
+							// Left cell
+							if (cleft != null) {
+								c_adjacent.add(cleft.city.alias);
+							}
+
+							// Top cell
+							if (ctop != null) {
+								c_adjacent.add(ctop.city.alias);
+							}
+
+							// Right cell
+							if (ctop != null) {
+								c_adjacent.add(cright.city.alias);
+							}
+
+							// Bottom cell
+							if (ctop != null) {
+								c_adjacent.add(cbottom.city.alias);
+							}
+							this.adjacent_cities.put(c.alias, c_adjacent);
+						}
+					}
+				}
+
+				for (Cell map_row[] : this.map) {
+					for (Cell cell : map_row) {
+
+					}
+				}
+
 				// Threat map. Initially zeroed across all cells
 				this.map_threat = new int[this.n_rows][this.n_cols];
 
@@ -151,6 +198,7 @@ public class Board {
 				System.out.printf("[Board] CRITICAL: Error while parsing\n");
 
 			System.err.println(e.getMessage());
+			e.printStackTrace();
 			System.exit(0);
 		}
 

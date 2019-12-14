@@ -1,4 +1,4 @@
-Genetist;gen;
-Doctor;doc;
-Analist;ana;
-OperationsExpert;ope;
+Genetist;genetist;
+Doctor;doctor;
+Analist;analist;
+OperationsExpert;op_expert;

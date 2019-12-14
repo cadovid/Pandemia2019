@@ -15,7 +15,7 @@ import _aux.CustomTypes;
 public class Role {
 	public String name;
 	public String alias;
-	private Player player = null;
+	public Player player = null;
 	private boolean assigned = false;
 
 	// Constructor

@@ -18,7 +18,6 @@ public class GridPlayer extends GridInfo {
 	 */
 	public void refresh(Cell cell, Renderer r) {
 
-		System.out.println("refreshing cell");
 		// Removes old contents
 		this.removeAll();
 

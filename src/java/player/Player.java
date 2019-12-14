@@ -119,6 +119,7 @@ public class Player {
 			System.exit(0);
 		}
 
+		// Binds players to game
 		return players;
 	}
 

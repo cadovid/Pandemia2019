@@ -23,7 +23,7 @@ public class City {
 	public String name;
 	public int population;
 	public Disease local_disease;
-	private Cell cell;
+	public Cell cell;
 	private Hashtable<Direction, City> neighbors; // Adjacent cities. Should be initialized when instatiating the Board
 													// object
 

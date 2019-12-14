@@ -1,6 +1,7 @@
 package game;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 // Local imports
 import player.*;
@@ -26,10 +27,15 @@ import java.util.logging.*;
     Initializes game objects (board and players), and executes game
 */
 public class Game extends jason.environment.Environment {
-
 	private Logger logger = Logger.getLogger("pandemic.mas2j." + Game.class.getName());
 
+	public static final Literal TURN = Literal.parseLiteral("turn");
+	public static final Literal ACTIONS_LEFT = Literal
+			.parseLiteral("actions_left(" + _aux.Options.PLAYER_MAX_ACTIONS + ")");
+
 	public static final Term MOVE_ADJACENT = Literal.parseLiteral("moveAdjacent(direction)");
+	public static final Term MOVE_ADJACENT_CITY = Literal.parseLiteral("moveAdjacentCity(dest)");
+	public static final Term MOVE_ADJACENT_RANDOM = Literal.parseLiteral("moveAdjacentRandom");
 	public static final Term DIRECT_FLIGHT = Literal.parseLiteral("directFlight(dest)");
 	public static final Term CHARTER_FLIGHT = Literal.parseLiteral("charterFlight(dest)");
 	public static final Term AIR_BRIDGE = Literal.parseLiteral("airBridge(dest)");
@@ -66,6 +72,7 @@ public class Game extends jason.environment.Environment {
 	private Renderer render;
 	public CustomTypes.GameMode gm = CustomTypes.GameMode.TURN;
 	public boolean runTurn = false;
+	public boolean waitingManualChange = false;
 
 	// Decks
 	public Deck d_game;
@@ -78,8 +85,13 @@ public class Game extends jason.environment.Environment {
 		if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
 			System.out.printf("[Game] INFO - Initializing game environment...\n");
 
-		// Parses game data from init files
-		this.parseData();
+		parseData();
+		Board board = new Board(Datapaths.map, this.cities);
+		GameStatus gs = new GameStatus(board);
+		this.gs = gs;
+
+		// GRA - Initializes renderer
+		this.render = new Renderer(this, null, board);
 
 		if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
 			System.out.printf("[Game] INFO - Environment ready!\n");
@@ -89,33 +101,13 @@ public class Game extends jason.environment.Environment {
 	@Override
 	public void stop() {
 		super.stop();
+
+		addPercept(Literal.parseLiteral("gameover"));
 	}
 
 	// Called before the MAS execution with the args informed in .mas2j
 	@Override
 	public void init(String[] args) {
-		// Needs to communicate number of players to supplicant. When all players are
-		// ready, supplicant should remove the init belief
-
-		// Dummy
-		// addPercept("supplicant", Literal.parseLiteral("nPlayers(" + this.n_players +
-		// ")"));
-		addPercept("supplicant", Literal.parseLiteral("nPlayers(" + this.n_players + ")"));
-
-		// Adds initial percept to supplicant agent
-		addPercept("supplicant", Literal.parseLiteral("init"));
-
-		logger.info("Starting game\n");
-		// Initializes game
-
-		// Since class is extended from environment, is already initialized, hence
-		// there's no need to create the object
-		// Game g = new Game();
-		Board board = new Board(Datapaths.map, this.cities);
-		GameStatus gs = new GameStatus(board);
-		this.gs = gs;
-		parseData();
-
 		c_cities = CityCard.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.CITY);
 		c_infection = CityCard.parseCities(new ArrayList<City>(cities.values()), CustomTypes.CardType.INFECTION);
 
@@ -219,12 +211,13 @@ public class Game extends jason.environment.Environment {
 		gs.cp = players.get(this.p_order.get(0));
 		gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
 
-		// GRA - Initializes renderer
-		this.render = new Renderer(this, null, board);
 		// GRA - Refresh graphics
 		this.render.refresh(null, null);
-		if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal())
+		if (Options.LOG.ordinal() >= CustomTypes.LogLevel.INFO.ordinal()) {
 			System.out.printf("[Game] INFO - Environment ready!\n");
+		}
+
+		controlFeedback(this.gm);
 
 		updatePercepts();
 	}
@@ -254,83 +247,107 @@ public class Game extends jason.environment.Environment {
 
 	@Override
 	public boolean executeAction(String ag, Structure action) {
+		// Resolves action name and player (agName must be equal to the role alias)
+		String aname = action.getFunctor();
+		Player p = this.roles.get(ag).player;
+
 		logger.info(ag + " doing: " + action);
+
+		if (aname.equals("init")) {
+			logger.info("Adding percept.");
+			addPercept(Literal.parseLiteral("init"));
+			return true;
+		}
+
 		boolean consumed_action = false;
 		try {
-			if (gs.round == Round.ACT) {
-				if (action.equals(MOVE_ADJACENT)) {
-					if (moveAdjacent(gs.cp, Direction.values()[((int) ((NumberTerm) action.getTerm(0)).solve())])) {
-						consumed_action = true;
-						automaticDoctorDiseasesTreatment();
-					} else {
-						return false;
-					}
-				} else if (action.equals(DIRECT_FLIGHT)) {
-					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (directFlight(gs.cp, dest)) {
-						consumed_action = true;
-						automaticDoctorDiseasesTreatment();
-					}
-				} else if (action.equals(CHARTER_FLIGHT)) {
-					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (charterFlight(gs.cp, dest)) {
-						consumed_action = true;
-						automaticDoctorDiseasesTreatment();
-					}
-				} else if (action.equals(AIR_BRIDGE)) {
-					City dest = cities.get(((StringTerm) action.getTerm(0)).toString());
-					if (airBridge(gs.cp, dest)) {
-						consumed_action = true;
-						automaticDoctorDiseasesTreatment();
-					}
-				} else if (action.equals(BUILD_CI)) {
-					if (putInvestigationCentre(gs.cp.getCity())) {
-						consumed_action = true;
-					}
-				} else if (action.equals(TREAT_DISEASE)) {
-					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-					Disease dis = diseases.get(dis_alias);
-					City city = gs.cp.getCity();
-					if (dis.treatDisease(city.getInfection(dis), gs.cp)) {
-						consumed_action = true;
-					} else {
-						consumed_action = false;
-					}
-				} else if (action.equals(SHARE_INFO)) {
-					String player_alias = ((StringTerm) action.getTerm(0)).toString();
-					String city_name = ((StringTerm) action.getTerm(1)).toString();
-					boolean cp_giver = Boolean.parseBoolean(((StringTerm) action.getTerm(1)).toString());
-					shareInfo(player_alias, city_name, cp_giver);
-					consumed_action = true;
-				} else if (action.equals(DISCOVER_CURE)) {
-					String dis_alias = ((StringTerm) action.getTerm(0)).toString();
-					if (discoverCure(gs.cp, dis_alias)) {
-						consumed_action = true;
-					} else {
-						return false;
-					}
-				} else if (action.equals(PASS_TURN)) {
-					consumed_action = false;
-					gs.p_actions_left = 0;
-				} else {
-					return false;
-				}
-			}
-			if (action.equals(DISCARD_CARD)) {
-				String city = ((StringTerm) action.getTerm(0)).toString();
-				String player_alias = ((StringTerm) action.getTerm(1)).toString();
+			if (aname.equals("discardCard")) {
+				String city = action.getTerm(0).toString();
+				String player_alias = action.getTerm(1).toString();
 				players.get(player_alias).removeCard(city);
 				// This action does never consume action, it happens in draw phase
 				// or when sharing info with another player
 				consumed_action = false;
 			} else {
-				return false;
+				if (gs.round == Round.ACT) {
+					if (aname.equals("moveAdjacent")) {
+						consumed_action = true;
+						if (moveAdjacent(gs.cp, Direction.values()[((int) ((NumberTerm) action.getTerm(0)).solve())])) {
+							consumed_action = true;
+							automaticDoctorDiseasesTreatment();
+						} else {
+							return false;
+						}
+					} else if (aname.equals("moveAdjacentCity")) {
+						City dest = cities.get(action.getTerm(0).toString());
+						if (moveAdjacentCity(gs.cp, dest)) {
+							consumed_action = true;
+							automaticDoctorDiseasesTreatment();
+						}
+					} else if (aname.equals("moveAdjacentRandom")) {
+						if (moveAdjacentRandom(gs.cp)) {
+							consumed_action = true;
+							automaticDoctorDiseasesTreatment();
+						}
+					} else if (aname.equals("directFlight")) {
+						City dest = cities.get(action.getTerm(0).toString());
+						if (directFlight(gs.cp, dest)) {
+							consumed_action = true;
+							automaticDoctorDiseasesTreatment();
+						}
+					} else if (aname.equals("charterFlight")) {
+						City dest = cities.get(action.getTerm(0).toString());
+						if (charterFlight(gs.cp, dest)) {
+							consumed_action = true;
+							automaticDoctorDiseasesTreatment();
+						}
+					} else if (aname.equals("airBridge")) {
+						City dest = cities.get(action.getTerm(0).toString());
+						if (airBridge(gs.cp, dest)) {
+							consumed_action = true;
+							automaticDoctorDiseasesTreatment();
+						}
+					} else if (aname.equals("buildCI")) {
+						if (putInvestigationCentre(gs.cp.getCity())) {
+							consumed_action = true;
+						}
+					} else if (aname.equals("treatDisease")) {
+						String dis_alias = action.getTerm(0).toString();
+						Disease dis = diseases.get(dis_alias);
+						City city = gs.cp.getCity();
+						if (dis.treatDisease(city.getInfection(dis), gs.cp)) {
+							consumed_action = true;
+						} else {
+							consumed_action = false;
+						}
+					} else if (aname.equals("shareInfo")) {
+						String player_alias = action.getTerm(0).toString();
+						String city_name = action.getTerm(1).toString();
+						boolean cp_giver = Boolean.parseBoolean(action.getTerm(1).toString());
+						shareInfo(player_alias, city_name, cp_giver);
+						consumed_action = true;
+					} else if (aname.equals("discoverCure")) {
+						String dis_alias = action.getTerm(0).toString();
+						if (discoverCure(gs.cp, dis_alias)) {
+							consumed_action = true;
+						} else {
+							return false;
+						}
+					} else if (aname.equals("passTurn")) {
+						consumed_action = false;
+						gs.p_actions_left = 0;
+					} else {
+						logger.info("Unrecognized action!" + aname);
+						return false;
+					}
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		if (gs.round == Round.ACT) {
+			logger.info("Checking left actions");
 			if (consumed_action) {
 				gs.p_actions_left--;
 			}
@@ -339,19 +356,27 @@ public class Game extends jason.environment.Environment {
 				// Set to 0 because the draw phase begins
 				gs.p_actions_left = 0;
 				gs.round = Round.STEAL;
+				logger.info("STEAL round");
 			}
 		}
 		if (gs.round == Round.STEAL) {
+			logger.info("Stealing, hand size: " + gs.cp.getHand().size());
 			if (gs.cp.getHand().size() <= Options.PLAYER_MAX_CARDS) {
 				while (gs.round == Round.STEAL) {
-					drawPLayerCard(gs.cp);
+					if (!drawPLayerCard(gs.cp)) {
+						updatePercepts();
+						this.stop();
+						return true;
+					}
 					gs.drawnCards++;
+					logger.info("Drawn cards: " + gs.drawnCards);
 					if (gs.cp.getHand().size() > Options.PLAYER_MAX_CARDS) {
 						// One card must be discarded, so the actions are delayed
 						// until the agent calls the discard action
 						break;
 					} else if (gs.drawnCards == Options.PLAYER_DRAW_CARDS) {
 						gs.round = Round.INFECT;
+						logger.info("Infect round, to drawn: " + gs.infection_levels[gs.current_infection_level]);
 						for (int i = 0; i < gs.infection_levels[gs.current_infection_level]; i++) {
 							drawInfectCard();
 						}
@@ -360,14 +385,35 @@ public class Game extends jason.environment.Environment {
 						gs.cp = nextPlayer(gs.cp);
 						// For the next turn
 						gs.drawnCards = 0;
+						logger.info("ACT round, actions_left: " + gs.p_actions_left);
+						logger.info("Current player: " + gs.cp.alias);
+						logger.info("timeout mode: " + _aux.Options.GP_TIMEOUT);
+
+						if (_aux.Options.GP_TIMEOUT) {
+							try {
+								Thread.sleep(_aux.Options.GP_TIMEOUT_SLEEP);
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+							}
+						} else {
+							waitingManualChange = true;
+							while (waitingManualChange) {
+								try {
+									Thread.sleep(200);
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
+							}
+						}
 					}
 				}
 			} else {
-				System.out.printf("[Game] WARNING: Agent must discard card but it does not call the action!!\n");
+				logger.info("[Game] WARNING: Agent must discard card but it does not call the action!!\n");
 			}
 		}
-
+		logger.info("updating percepts");
 		updatePercepts();
+		logger.info("percepts updated");
 
 		try {
 			Thread.sleep(200);
@@ -380,7 +426,7 @@ public class Game extends jason.environment.Environment {
 	/** creates the agents perception */
 
 	void updatePercepts() {
-		clearPercepts();
+		clearAllPercepts();
 		logger.info(gs.cp.alias);
 
 		// All percepts are added to all agents except the remaining actions,
@@ -391,6 +437,7 @@ public class Game extends jason.environment.Environment {
 			}
 			if (gs.cp.equals(p)) {
 				addPercept(p.alias, Literal.parseLiteral("left_actions(" + gs.p_actions_left + ")"));
+				addPercept(p.alias, TURN);
 			} else {
 				addPercept(p.alias, Literal.parseLiteral("left_actions(" + 0 + ")"));
 			}
@@ -398,9 +445,11 @@ public class Game extends jason.environment.Environment {
 
 		// Percepts for cards and location of players
 		for (Player player : this.players.values()) {
-			addPercept(Literal.parseLiteral("at(" + player.alias + "," + player.city.alias + ")"));
+			addPercept(Literal.parseLiteral("atCity(" + player.alias + "," + player.city.alias + ")"));
+			addPercept(player.alias, Literal.parseLiteral("myCity(" + player.city.alias + ")"));
 			for (String new_card : player.getHand().keySet()) {
 				addPercept(Literal.parseLiteral("hasCard(" + player.alias + "," + new_card + ")"));
+				addPercept(player.alias, Literal.parseLiteral("myCard(" + new_card + ")"));
 			}
 		}
 
@@ -409,9 +458,23 @@ public class Game extends jason.environment.Environment {
 			if (city.canResearch()) {
 				addPercept(Literal.parseLiteral("hasCI(" + city.alias + ")"));
 			}
-			for (Infection infection : city.getInfections()) {
-				addPercept(Literal.parseLiteral("spreadLevel(" + infection.city_host.alias + "," + infection.dis.alias
-						+ "," + infection.spread_level + ")"));
+			// Position of cities: at(city,alias,x,y)
+			addPercept(Literal.parseLiteral("at(city," + city.alias + "," + city.cell.x + "," + city.cell.y + ")"));
+
+			// Sum of diseases viruses
+			int ilevel = 0;
+			for (Infection i : city.infections) {
+				ilevel += i.spread_level;
+			}
+			addPercept(Literal.parseLiteral("infectionLVL(" + city.alias + "," + (ilevel) + ")"));
+		}
+
+		// Adjacent cities: adjacent(city,adjacent_city)
+		// Iterates every key in the adjacent_cities dictionary
+		for (String c_alias : this.gs.board.adjacent_cities.keySet()) {
+			// Iterates every adjacent city assigned to c_alias city and parses the percept
+			for (String adjacent : this.gs.board.adjacent_cities.get(c_alias)) {
+				addPercept(Literal.parseLiteral("adjacent(" + c_alias + ", " + adjacent + ")"));
 			}
 		}
 
@@ -424,12 +487,40 @@ public class Game extends jason.environment.Environment {
 		// Percepts for disease cures
 		for (Disease dis : this.diseases.values()) {
 			if (dis.cure) {
-				addPercept(Literal.parseLiteral("isCure(" + dis.alias + ")"));
+				addPercept(Literal.parseLiteral("isCured(" + dis.alias + ")"));
 			}
+			addPercept(Literal.parseLiteral("disease(" + dis.alias + "," + dis.spreads_left + ")"));
 		}
 
-		// TODO: percepts for all agents
-		// addPercept(Literal.parseLiteral(""));
+		// Game mode
+		if (_aux.Options.GP_TIMEOUT) {
+			addPercept(Literal.parseLiteral("control_timeout(" + _aux.Options.GP_TIMEOUT_SLEEP + ")"));
+		} else {
+			addPercept(Literal.parseLiteral("control_manual)"));
+		}
+
+		// This function is called when buttons are pressed
+		// controlFeedback(this.gm);
+	}
+
+	// Buttons behaviour
+	public void controlFeedback(_aux.CustomTypes.GameMode gm) {
+		removePercept(Literal.parseLiteral("control_manual"));
+		removePercept(Literal.parseLiteral("control_timeout(_)"));
+
+		if (gm == _aux.CustomTypes.GameMode.TIMESTAMP) {
+			addPercept(Literal.parseLiteral("control_timeout(" + _aux.Options.GP_TIMEOUT_SLEEP + ")"));
+			addPercept(Literal.parseLiteral("control_run"));
+			waitingManualChange = false;
+		}
+
+		// Manual control
+		else {
+			// control_run is removed from agent when its turn finishes
+			addPercept(Literal.parseLiteral("control_manual"));
+			addPercept(Literal.parseLiteral("control_run"));
+			waitingManualChange = false;
+		}
 	}
 
 	/**
@@ -478,9 +569,7 @@ public class Game extends jason.environment.Environment {
 
 	public boolean drawPLayerCard(Player player) {
 		// Si no quedan cartas que robar, devuelve false
-		boolean enoughCards = false;
 		if (!this.d_game.cards.isEmpty()) {
-			enoughCards = true;
 			CityCard new_card = this.d_game.draw();
 			this.d_game_discards.stack(new_card);
 			if (new_card.isEpidemic()) {
@@ -491,8 +580,11 @@ public class Game extends jason.environment.Environment {
 			} else {
 				player.addCard(new_card);
 			}
+		} else {
+			logger.info("Game deck out of cards... Game Over!");
+			return false;
 		}
-		return enoughCards;
+		return true;
 	}
 
 	public boolean drawInfectCard() {
@@ -556,6 +648,42 @@ public class Game extends jason.environment.Environment {
 			moved = true;
 		}
 		return moved;
+	}
+
+	/**
+	 * Moves to the destination city (only if it is an adjacent city).
+	 * 
+	 * @param destination
+	 * @return true if moved and false otherwise.
+	 */
+	public boolean moveAdjacentCity(Player current_player, City destination) {
+		boolean moved = false;
+		for (String adjacent : this.gs.board.adjacent_cities.get(current_player.city.alias)) {
+			if (adjacent == destination.alias) {
+				current_player.getCity().removePlayer(current_player);
+				current_player.setCity(destination);
+				current_player.getCity().putPlayer(current_player);
+				return true;
+			}
+		}
+
+		return moved;
+	}
+
+	/**
+	 * Moves to a random adjacent city.
+	 * 
+	 * @param destination
+	 * @return true if moved and false otherwise.
+	 */
+	public boolean moveAdjacentRandom(Player current_player) {
+		int chosen = ThreadLocalRandom.current().nextInt(0, 4);
+		String adjacent = this.gs.board.adjacent_cities.get(current_player.city.alias).get(chosen);
+		City destination = this.cities.get(adjacent);
+		current_player.getCity().removePlayer(current_player);
+		current_player.setCity(destination);
+		current_player.getCity().putPlayer(current_player);
+		return true;
 	}
 
 	/**

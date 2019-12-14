@@ -4,9 +4,6 @@ MAS pandemic {
 	environment: game.Game
 
 	agents:
-		p2;
-		p1;
-		supplicant;
 		doctor;
 		genetist;
 		op_expert;

@@ -77,8 +77,6 @@ public class Grid extends Box {
 					String cell_cityAlias = cell_city.alias;
 
 					grid_cityCells.put(cell_cityAlias, gcell);
-
-					System.out.println("+++saving city " + cell_cityAlias + " at row " + row + " and col " + col);
 				}
 
 				this.grid_cells[row][col] = gcell;

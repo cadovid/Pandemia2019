@@ -25,7 +25,7 @@ public class Control extends graphics.Box {
 					System.out.println("[Control] - Game mode switched to \"TURN\"");
 				}
 
-				g.runTurn = true;
+				g.controlFeedback(CustomTypes.GameMode.TURN);
 			}
 		});
 
@@ -35,6 +35,8 @@ public class Control extends graphics.Box {
 					g.gm = CustomTypes.GameMode.TIMESTAMP;
 					System.out.println("[Control] - Game mode switched to \"TIMESTAMP\"");
 				}
+
+				g.controlFeedback(CustomTypes.GameMode.TIMESTAMP);
 			}
 		});
 
