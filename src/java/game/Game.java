@@ -523,6 +523,8 @@ public class Game extends jason.environment.Environment {
 
 		// Percepts for spread level and CI per city
 		for (City city : this.cities.values()) {
+			String closest = getClosestCI(city).alias;
+			addPercept(Literal.parseLiteral("closestCI(" + city.alias + "," + closest + ")"));
 			if (city.canResearch()) {
 				addPercept(Literal.parseLiteral("hasCI(" + city.alias + ")"));
 			}
@@ -854,7 +856,7 @@ public class Game extends jason.environment.Environment {
 				for (Card card : gs.cp.getHand().values()) {
 					if (city.equals(card.city)) {
 						city.can_research = true;
-						gs.current_research_centers++;	
+						gs.current_research_centers++;
 						gs.cp.getHand().remove(card.getCity().alias);
 						return true;
 					}
@@ -1172,6 +1174,22 @@ public class Game extends jason.environment.Environment {
 		return new int[] { finalHor + finalVer, mov };
 	}
 
+	public City getClosestCI(City start) {
+		City closestCI = null;
+		int minDistance = 10000;
+		for (City c : this.cities.values()) {
+			if (c.can_research) {
+				int distance = manhattanDistanceTorus(start.cell.getCoordinates(), c.cell.getCoordinates(),
+						this.gs.board.n_rows, this.gs.board.n_cols)[0];
+				if (distance < minDistance) {
+					closestCI = c;
+					minDistance = distance;
+				}
+			}
+		}
+		return closestCI;
+	}
+
 	public void findNearestCube() {
 		int nearestCubeDistance = Integer.MAX_VALUE;
 		City cityNearestCube = null;
@@ -1270,7 +1288,7 @@ public class Game extends jason.environment.Environment {
 		this.infections = new ArrayList<Infection>();
 		for (City city : cities.values()) {
 			for (Infection inf : city.infections) {
-				if (!this.infections.contains(inf)) {
+				if (inf.spread_level > 0 && !this.infections.contains(inf)) {
 					infections.add(inf);
 				}
 			}
