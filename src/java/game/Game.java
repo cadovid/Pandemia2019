@@ -853,6 +853,8 @@ public class Game extends jason.environment.Environment {
 				// The card of the city must been discarded
 				for (Card card : gs.cp.getHand().values()) {
 					if (city.equals(card.city)) {
+						city.can_research = true;
+						gs.current_research_centers++;	
 						gs.cp.getHand().remove(card.getCity().alias);
 						return true;
 					}
@@ -870,6 +872,7 @@ public class Game extends jason.environment.Environment {
 			addPercept(gs.cp.alias, Literal.parseLiteral("aaciIsRecheableE(" + current_city.alias + ")"));
 		} else {
 			addPercept(gs.cp.alias, Literal.parseLiteral("aaciIsNotRecheableE(" + current_city.alias + ")"));
+			addPercept(gs.cp.alias, Literal.parseLiteral("needCI(" + current_city.alias + ")"));
 		}
 	}
 
