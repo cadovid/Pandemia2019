@@ -340,7 +340,7 @@ public class Game extends jason.environment.Environment {
 					} else if (aname.equals("shareInfo")) {
 						String player_alias = action.getTerm(0).toString();
 						String city_name = action.getTerm(1).toString();
-						boolean cp_giver = Boolean.parseBoolean(action.getTerm(1).toString());
+						boolean cp_giver = Boolean.parseBoolean(action.getTerm(2).toString());
 						shareInfo(player_alias, city_name, cp_giver);
 						consumed_action = true;
 					} else if (aname.equals("discoverCure")) {
@@ -389,7 +389,7 @@ public class Game extends jason.environment.Environment {
 					// DISTANCE
 					// --------------------------------------------------------------------------
 					else {
-						logger.info("Unrecognized action!" + aname);
+						logger.info("Unrecognized action! " + aname);
 						return false;
 					}
 				}
