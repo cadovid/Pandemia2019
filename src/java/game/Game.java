@@ -80,7 +80,14 @@ public class Game extends jason.environment.Environment {
 	public Deck d_infection;
 	public Deck d_game_discards;
 	public Deck d_infection_discards;
-	
+
+	// DISTANCE
+	// --------------------------------------------------------------------------
+
+	public ArrayList<City> solicitedCards = new ArrayList<City>();
+
+	// DISTANCE
+	// --------------------------------------------------------------------------
 
 	// Constructor. Loads data and initializes board.
 	public Game() {
@@ -117,10 +124,10 @@ public class Game extends jason.environment.Environment {
 		d_infection = new Deck(c_infection, CustomTypes.DeckType.INFECTION);
 		d_game_discards = new Deck(CustomTypes.DeckType.GAME);
 		d_infection_discards = new Deck(CustomTypes.DeckType.INFECTION);
-		
+
 		// set neighbors to each city
 		Board.resolveAdjacentCities(gs.board, cities);
-		
+
 		/*
 		 * Shuffles decks
 		 */
@@ -343,13 +350,45 @@ public class Game extends jason.environment.Environment {
 						} else {
 							return false;
 						}
-					} else if (aname.equals("passTurn")) {
-						consumed_action = false;
-						gs.p_actions_left = 0;
-					} /*else if (aname.equals("isCIreachable")) {
+					} else if (aname.equals("isCIreachable")) {
 						consumed_action = false;
 						isCIreachable(gs.cp.city, Integer.parseInt(action.getTerm(0).toString()));
-					}*/ else {
+					}
+					// DISTANCE
+					// --------------------------------------------------------------------------
+					else if (aname.equals("passTurn")) {
+						consumed_action = true;
+						gs.p_actions_left = 1;
+					} else if (aname.equals("findPlayerToAsk")) {
+						findPlayerToAsk(action.getTerm(0).toString());
+						consumed_action = false;
+					} else if (aname.equals("moveToNearObjective")) {
+						String nombreCiudad = action.getTerm(0).toString();
+						int[] coordenadasCiudad = null;
+						for (City city : this.cities.values()) {
+							if (city.alias.equals(nombreCiudad)) {
+								coordenadasCiudad = city.getCell().getCoordinates();
+							}
+						}
+						moveToNearObjective(coordenadasCiudad);
+						consumed_action = true;
+					} else if (aname.equals("moveToFarObjective")) {
+						String nombreCiudad = action.getTerm(0).toString();
+						int[] coordenadasCiudad = null;
+						for (City city : this.cities.values()) {
+							if (city.alias.equals(nombreCiudad)) {
+								coordenadasCiudad = city.getCell().getCoordinates();
+							}
+						}
+						moveToFarObjective(coordenadasCiudad, action.getTerm(1).toString());
+						consumed_action = true;
+					} else if (aname.equals("findNearestCube")) {
+						findNearestCube();
+						consumed_action = false;
+					}
+					// DISTANCE
+					// --------------------------------------------------------------------------
+					else {
 						logger.info("Unrecognized action!" + aname);
 						return false;
 					}
@@ -361,7 +400,7 @@ public class Game extends jason.environment.Environment {
 
 		this.render.refresh(null, null);
 
-		if (gs.round == Round.ACT) {
+		if (consumed_action && gs.round == Round.ACT) {
 			logger.info("Checking left actions");
 			if (consumed_action) {
 				gs.p_actions_left--;
@@ -370,6 +409,13 @@ public class Game extends jason.environment.Environment {
 			if (gs.p_actions_left <= 0) {
 				// Set to 0 because the draw phase begins
 				gs.p_actions_left = 0;
+				// DISTANCE
+				// --------------------------------------------------------------------------
+
+				this.solicitedCards.clear();
+
+				// DISTANCE
+				// --------------------------------------------------------------------------
 				gs.round = Round.STEAL;
 				logger.info("STEAL round");
 			}
@@ -431,15 +477,17 @@ public class Game extends jason.environment.Environment {
 				logger.info("[Game] WARNING: Agent must discard card but it does not call the action!!\n");
 			}
 		}
-		logger.info("updating percepts");
-		updatePercepts();
-		logger.info("percepts updated");
+		if (consumed_action || gs.round != Round.ACT) {
+			logger.info("updating percepts");
+			updatePercepts();
+			logger.info("percepts updated");
 
-		try {
-			Thread.sleep(200);
-		} catch (Exception e) {
+			try {
+				Thread.sleep(200);
+			} catch (Exception e) {
+			}
+			informAgsEnvironmentChanged();
 		}
-		informAgsEnvironmentChanged();
 		return true;
 	}
 
@@ -658,7 +706,7 @@ public class Game extends jason.environment.Environment {
 		boolean satisfied = false;
 		for (Map.Entry<String, CityCard> entry : current_player.getHand().entrySet()) {
 			City city = entry.getValue().getCity();
-			if (city.local_disease.alias == diseaseAlias) {
+			if (city.local_disease.alias.equals(diseaseAlias)) {
 				to_discard.add(entry.getKey());
 				if (to_discard.size() == 5
 						|| (to_discard.size() == 4 && current_player.getRole().alias.equals("genetist"))) {
@@ -797,7 +845,7 @@ public class Game extends jason.environment.Environment {
 	 */
 	public boolean putInvestigationCentre(City city, boolean init) {
 		if (gs.current_research_centers < Options.MAX_RESEARCH_CENTERS - 1) {
-			if (init || gs.cp.alias == "op_expert") {
+			if (init || gs.cp.alias.equals("op_expert")) {
 				city.can_research = true;
 				gs.current_research_centers++;
 				return true;
@@ -816,21 +864,362 @@ public class Game extends jason.environment.Environment {
 		}
 	}
 
-	public boolean isCIreachable(City current_city, int left_moves){	
+	public void isCIreachable(City current_city, int left_moves) {
+		boolean isReachable = isCIreachableAUX(current_city, left_moves);
+		if (isReachable) {
+			addPercept(gs.cp.alias, Literal.parseLiteral("aaciIsRecheableE(" + current_city.alias + ")"));
+		} else {
+			addPercept(gs.cp.alias, Literal.parseLiteral("aaciIsNotRecheableE(" + current_city.alias + ")"));
+		}
+	}
+
+	public boolean isCIreachableAUX(City current_city, int left_moves) {
 		if (current_city.canResearch()) {
 			return true;
-		}else if (left_moves == 0){
+		} else if (left_moves == 0) {
 			return false;
-		}else{
-			Collection<City> neighbors = current_city.getNeighbors().values();
+		} else {
 			boolean isReachable = false;
-			for(City c: neighbors) {
-				isReachable = isReachable || isCIreachable(c, left_moves - 1);
+			Collection<City> neighbors = current_city.getNeighbors().values();
+			for (City c : neighbors) {
+				isReachable = isReachable || isCIreachableAUX(c, left_moves - 1);
 			}
 			return isReachable;
 		}
-		
 	}
+
+	// DISTANCE
+	// --------------------------------------------------------------------------
+
+	public void findPlayerToAsk(String desiredDisease) {
+		System.out.println("===========> " + desiredDisease);
+
+		Player desiredPlayer = null;
+		CityCard desiredCard = null;
+		int minimumDistanceToCard = Integer.MAX_VALUE;
+		for (Player player : this.players.values()) {
+
+			for (String cardAlias : player.getHand().keySet()) {
+				System.out.println("=====================================>" + cardAlias);
+
+				boolean ignorada = false;
+				for (City cardYaPreguntada : this.solicitedCards) {
+					if (cardYaPreguntada.alias.equals(cardAlias)) {
+						ignorada = true;
+						System.out.println("===========> IGNORADA" + cardAlias);
+					}
+				}
+				if (!ignorada & !player.alias.equals(gs.cp.alias)) {
+					Disease diseaseCard = player.getHand().get(cardAlias).getDisease();
+					String diseaseAlias = diseaseCard.alias;
+					if (diseaseAlias.equals(desiredDisease)) {
+						System.out.println("===================> YUPI");
+						City cityCard = player.getHand().get(cardAlias).getCity();
+						Cell cityCell = cityCard.getCell();
+						int[] cardPosition = cityCell.getCoordinates();
+						String[] calculusDistanceToCard = routeChoice(cardPosition, desiredDisease);
+						int distanceToCard = Integer.parseInt(calculusDistanceToCard[0]);
+						Player possibleDesiredPlayer = player;
+						if (distanceToCard < minimumDistanceToCard) {
+							desiredPlayer = possibleDesiredPlayer;
+							desiredCard = player.getHand().get(cardAlias);
+							minimumDistanceToCard = distanceToCard;
+						}
+					}
+				}
+			}
+		}
+		if (desiredPlayer != null) {
+			System.out
+					.println("FINALLLLLLLLLLLLLLLLLLLLLLLLLLL " + desiredCard.city.alias + " " + minimumDistanceToCard);
+			this.solicitedCards.add(desiredCard.city);
+			addPercept(gs.cp.alias,
+					Literal.parseLiteral("soliciteCardE(" + desiredPlayer.alias + "," + desiredCard.city.alias + ")"));
+			// addPercept(gs.cp.alias, Literal.parseLiteral("soliciteCardE(NADA)"));
+		} else {
+			addPercept(gs.cp.alias, Literal.parseLiteral("nobodySharesE"));
+		}
+
+	}
+
+	public String[] routeChoice(int[] finalPosition, String desiredDisease) {
+		int[] initialPosition = gs.cp.getCity().getCell().getCoordinates();
+		// Calculo el coste de caminar entre los puntos
+		int[] walkDistance = manhattanDistanceTorus(initialPosition, finalPosition, gs.board.n_rows, gs.board.n_cols);
+		int minimumCostRoute = walkDistance[0];
+		String nextAction = "" + walkDistance[1];
+		boolean usoCarta = false;
+
+		City ciudadDestino = null;
+		for (City ciudad : cities.values()) {
+			int coordAux[] = ciudad.getCell().getCoordinates();
+			if (coordAux[0] == finalPosition[0] & coordAux[1] == finalPosition[1]) {
+				ciudadDestino = ciudad;
+			}
+		}
+
+		// Calculo el coste de utilizar un vuelo directo(Puedo volar hasta esa ciudad)
+		for (String card : gs.cp.getHand().keySet()) {
+			Disease diseaseCard = gs.cp.getHand().get(card).getDisease();
+			if (!desiredDisease.equals(diseaseCard.alias)) {
+				City city = gs.cp.getHand().get(card).getCity();
+				Cell cell = city.getCell();
+				int[] position = cell.getCoordinates();
+				int[] totalDistanceDirectFlight = manhattanDistanceTorus(position, finalPosition, gs.board.n_rows,
+						gs.board.n_cols);
+				int aux = totalDistanceDirectFlight[0] + 1;
+				if (aux < minimumCostRoute) {
+					minimumCostRoute = aux;
+					nextAction = 4 + "----" + city.alias;
+					usoCarta = true;
+				}
+			}
+		}
+
+		// Calculo el coste de utilizar un vuelo charter(Puedo volar a cualquier parte
+		// desde esa ciudad)
+		for (String card : gs.cp.getHand().keySet()) {
+			Disease diseaseCard = gs.cp.getHand().get(card).getDisease();
+			if (!desiredDisease.equals(diseaseCard.alias)) {
+				City city = gs.cp.getHand().get(card).getCity();
+				Cell cell = city.getCell();
+				int[] position = cell.getCoordinates();
+				int[] totalDistanceDirectFlight = manhattanDistanceTorus(initialPosition, position, gs.board.n_rows,
+						gs.board.n_cols);
+				int aux = totalDistanceDirectFlight[0] + 1;
+				if (aux < minimumCostRoute) {
+					minimumCostRoute = aux;
+					if (aux == 1) {
+						for (City ciudad : cities.values()) {
+							Cell cellCiudad = ciudad.getCell();
+							int[] posicionesCoordenadas = cellCiudad.getCoordinates();
+							if (posicionesCoordenadas[0] == position[0] && posicionesCoordenadas[1] == position[1]) {
+								nextAction = 5 + "----" + ciudadDestino.alias;
+							}
+						}
+
+					} else {
+						nextAction = "" + totalDistanceDirectFlight[1];
+					}
+					usoCarta = true;
+				}
+			}
+		}
+
+		// Calculo el coste de utilizar un air bridge(Puedo volar entre centros de
+		// investigacion)
+		ArrayList<City> cityList = new ArrayList<City>();
+		for (City city : cities.values()) {
+			if (city.canResearch()) {
+				cityList.add(city);
+			}
+		}
+
+		for (City cityF : cityList) {
+
+			boolean usoCartaCIF = false;
+			Cell cellF = cityF.getCell();
+			int[] positionF = cellF.getCoordinates();
+			int[] totalDistanceToResearchCentreF = manhattanDistanceTorus(positionF, finalPosition, gs.board.n_rows,
+					gs.board.n_cols);
+			int distanceToResearchCentreF = totalDistanceToResearchCentreF[0];
+			for (String card : gs.cp.getHand().keySet()) {
+				Disease diseaseCard = gs.cp.getHand().get(card).getDisease();
+				if (!diseaseCard.alias.equals(desiredDisease)) {
+					City city = gs.cp.getHand().get(card).getCity();
+					Cell cell = city.getCell();
+					int[] position = cell.getCoordinates();
+					int[] totalDistanceDirectFlight = manhattanDistanceTorus(positionF, position, gs.board.n_rows,
+							gs.board.n_cols);
+					int aux = totalDistanceDirectFlight[0] + 1;
+					if (aux < distanceToResearchCentreF) {
+						distanceToResearchCentreF = aux;
+						usoCartaCIF = true;
+					}
+				}
+			}
+
+			for (City cityI : cityList) {
+				boolean usoCartaCII = false;
+
+				if (!cityI.alias.equals(cityF.alias)) {
+
+					Cell cellI = cityI.getCell();
+					int[] positionI = cellI.getCoordinates();
+					int[] totalDistanceToResearchCentreI = manhattanDistanceTorus(initialPosition, positionI,
+							gs.board.n_rows, gs.board.n_cols);
+					String auxNextActionToResearchCentreI = "" + totalDistanceToResearchCentreI[1];
+					int distanceToResearchCentreI = totalDistanceToResearchCentreI[0];
+					if (distanceToResearchCentreI == 0) {
+						auxNextActionToResearchCentreI = 6 + "----" + cityF.alias;
+						// auxNextActionToResearchCentreI = ""+6;
+						// break;
+					}
+
+					for (String card : gs.cp.getHand().keySet()) {
+						Disease diseaseCard = gs.cp.getHand().get(card).getDisease();
+						if (!diseaseCard.alias.equals(desiredDisease)) {
+							City city = gs.cp.getHand().get(card).getCity();
+							Cell cell = city.getCell();
+							int[] position = cell.getCoordinates();
+							int[] totalDistanceDirectFlight = manhattanDistanceTorus(positionI, position,
+									gs.board.n_rows, gs.board.n_cols);
+							int aux = totalDistanceDirectFlight[0] + 1;
+							if (aux < distanceToResearchCentreI) {
+								distanceToResearchCentreI = aux;
+								auxNextActionToResearchCentreI = 4 + "----" + city.alias;
+								// totalDistanceToResearchCentreI[1] = 4;
+								usoCartaCII = true;
+							}
+						}
+					}
+					int costeTotalVuelosEntreCI = distanceToResearchCentreI + 1 + distanceToResearchCentreF;
+					if (costeTotalVuelosEntreCI < minimumCostRoute) {
+						minimumCostRoute = costeTotalVuelosEntreCI;
+						nextAction = "" + auxNextActionToResearchCentreI;
+					} else if (costeTotalVuelosEntreCI == minimumCostRoute && usoCarta && !usoCartaCII
+							&& !usoCartaCIF) {
+						minimumCostRoute = costeTotalVuelosEntreCI;
+						nextAction = "" + auxNextActionToResearchCentreI;
+						usoCarta = false;
+					}
+				}
+			}
+		}
+		return new String[] { "" + minimumCostRoute, nextAction };
+	}
+
+	public void moveToFarObjective(int[] finalPosition, String desiredDisease) {
+		String[] route = routeChoice(finalPosition, desiredDisease);
+		String nextAction = route[1];
+		String[] partsAction = nextAction.split("----");
+		System.out.println("TIENE QUE: " + route[0] + " " + route[1]);
+		System.out.println("PARTS ACTION: " + nextAction + "  " + partsAction[0]);
+		switch (partsAction[0]) {
+		case "0":
+			moveAdjacent(gs.cp, CustomTypes.Direction.UP);
+			break;
+		case "1":
+			moveAdjacent(gs.cp, CustomTypes.Direction.RIGHT);
+			break;
+		case "2":
+			moveAdjacent(gs.cp, CustomTypes.Direction.DOWN);
+			break;
+		case "3":
+			moveAdjacent(gs.cp, CustomTypes.Direction.LEFT);
+			break;
+		case "4":
+			for (City city : this.cities.values()) {
+				if (city.alias.equals(partsAction[1])) {
+					System.out.println("rnsofdigvkmzpv PUES ESO " + partsAction[1]);
+					directFlight(gs.cp, city);
+					break;
+				}
+			}
+			break;
+		case "5":
+			for (City city : this.cities.values()) {
+				if (city.alias.equals(partsAction[1])) {
+					System.out.println("rnsofdigvkmzpv PUES ESO " + partsAction[1]);
+					charterFlight(gs.cp, city);
+					break;
+				}
+			}
+			break;
+		case "6":
+			for (City city : this.cities.values()) {
+				if (city.alias.equals(partsAction[1])) {
+					System.out.println("rnsofdigvkmzpv PUES ESO " + partsAction[1]);
+					airBridge(gs.cp, city);
+					break;
+				}
+			}
+			break;
+		}
+	}
+
+	public int[] manhattanDistanceTorus(int[] initialPosition, int[] finalPosition, int nRows, int nCols) {
+		int movH, movV;
+		// Calculo numero de casillas movimiento horizontal
+		int hor = initialPosition[1] - finalPosition[1];
+		if (hor < 0) {
+			movH = 2;
+			hor = hor * (-1);
+		} else
+			movH = 0;
+		int finalHor = Math.min(hor, nRows - hor);
+		// Calculo numero de casillas movimiento vertical
+		int ver = initialPosition[0] - finalPosition[0];
+		if (ver < 0) {
+			movV = 1;
+			ver = ver * (-1);
+		} else
+			movV = 3;
+		int finalVer = Math.min(ver, nCols - ver);
+		// Calculo direccion inicial del movimiento
+		int mov = movH;
+		if (finalHor == 0) {
+			if (ver != finalVer) {
+				movV = (movV + 2) % 4;
+			}
+			mov = movV;
+		} else if (hor != finalHor) {
+			mov = (movH + 2) % 4;
+		}
+		return new int[] { finalHor + finalVer, mov };
+	}
+
+	public void findNearestCube() {
+		int nearestCubeDistance = Integer.MAX_VALUE;
+		City cityNearestCube = null;
+		for (City city : cities.values()) {
+			int sumValores = 0;
+			for (Infection inf : city.getInfections()) {
+				sumValores += inf.spread_level;
+			}
+			if (sumValores > 0) {
+				System.out.println("PRUEBO CON: " + city.alias + " " + sumValores);
+				Cell cell = city.getCell();
+				int[] finalPosition = cell.getCoordinates();
+				String[] aux = shortRouteChoice(finalPosition);
+				if (Integer.parseInt(aux[0]) < nearestCubeDistance) {
+					nearestCubeDistance = Integer.parseInt(aux[0]);
+					cityNearestCube = city;
+				}
+			}
+		}
+		addPercept(gs.cp.alias, Literal.parseLiteral("cityNearestCubeE(" + cityNearestCube.alias + ")"));
+	}
+
+	public String[] shortRouteChoice(int[] finalPosition) {
+		int[] initialPosition = gs.cp.getCity().getCell().getCoordinates();
+		// Calculo el coste de caminar entre los puntos
+		int[] walkDistance = manhattanDistanceTorus(initialPosition, finalPosition, gs.board.n_rows, gs.board.n_cols);
+		int minimumCostRoute = walkDistance[0];
+		String nextAction = "" + walkDistance[1];
+		return new String[] { "" + minimumCostRoute, nextAction };
+	}
+
+	public void moveToNearObjective(int[] finalPosition) {
+		String[] nextAction = shortRouteChoice(finalPosition);
+		switch (nextAction[1]) {
+		case "0":
+			moveAdjacent(gs.cp, CustomTypes.Direction.UP);
+			break;
+		case "1":
+			moveAdjacent(gs.cp, CustomTypes.Direction.RIGHT);
+			break;
+		case "2":
+			moveAdjacent(gs.cp, CustomTypes.Direction.DOWN);
+			break;
+		case "3":
+			moveAdjacent(gs.cp, CustomTypes.Direction.LEFT);
+			break;
+		}
+	}
+
+	// DISTANCE
+	// --------------------------------------------------------------------------
 
 	void automaticDoctorDiseasesTreatment() {
 		if (gs.cp.getRole().alias.equals("doctor")) {
@@ -868,6 +1257,19 @@ public class Game extends jason.environment.Environment {
 			} else {
 				infection.spread_level = infection.spread_level + 1;
 				logger.info(city.alias + " infected of " + dis.alias + ", level: " + infection.spread_level);
+			}
+		}
+
+		updateGameGeneralInfectionsList();
+	}
+
+	public void updateGameGeneralInfectionsList() {
+		this.infections = new ArrayList<Infection>();
+		for (City city : cities.values()) {
+			for (Infection inf : city.infections) {
+				if (!this.infections.contains(inf)) {
+					infections.add(inf);
+				}
 			}
 		}
 	}

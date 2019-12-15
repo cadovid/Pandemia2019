@@ -18,28 +18,40 @@
 
 									
 // Si tiene que descartarse una carta se descarta la primera que encuentra (TODO: mejorar esto)
-+cardMustBeenDiscarded : hasCard(doctor, CARD) <- discardCard(CARD, doctor); -cardMustBeenDiscarded.
++cardMustBeenDiscarded : myCard(CARD) <- discardCard(CARD, doctor); -cardMustBeenDiscarded.
 
-// Se mueve siempre a la izquierda
-+left_actions(N) : N > 0 <- passTurn.
 
 // Si le piden curar una ciudad y no esta yendo a curar una ya va a curarla y se lo dice a los demas
-+!heal(city, virus, quantity) : not willHeal(CITY, VIRUS, QUANTITY) <- -heal(city, virus, quantity);
-    +willHeal(city, virus, quantity); .send(AG, tell, willHeal(city, virus, quantity)).
++!heal(CITY, VIRUS, QUANTITY) : not willHeal(CITY, VIRUS, QUANTITY) <- -heal(CITY, VIRUS, QUANTITY);
+    +willHeal(CITY, VIRUS, QUANTITY);
+    .send(genetist, tell, willHeal(CITY, VIRUS, QUANTITY));
+    .send(analist, tell, willHeal(CITY, VIRUS, QUANTITY));
+    .send(op_expert, tell, willHeal(CITY, VIRUS, QUANTITY)).
 
 // Si le piden curar una enfermedad y esta curando otra pero de menos cubos deja la anterior y va a esta
-+!heal(city, virus, quantity) : willHeal(CITY, VIRUS, QUANTITY) & QUANTITY < quantity <- -heal(city, virus, quantity);
-    -willHeal(CITY, VIRUS, QUANTITY);
-    +willHeal(city, virus, quantity); .send(AG, tell, willHeal(city, virus, quantity)).
++!heal(CITY, VIRUS, QUANTITY) : willHeal(CITY, VIRUS, QUANTITY2) & QUANTITY2 < QUANTITY <- -heal(CITY, VIRUS, QUANTITY2);
+    -willHeal(CITY, VIRUS, QUANTITY2);
+    +willHeal(CITY, VIRUS, QUANTITY);
+    .send(genetist, tell, willHeal(CITY, VIRUS, QUANTITY));
+    .send(analist, tell, willHeal(CITY, VIRUS, QUANTITY));
+    .send(op_expert, tell, willHeal(CITY, VIRUS, QUANTITY)).
     
  // En cualquier otro caso si le piden curar una enfermedad la rechaza
- +!heal(city, virus, quantity)[source(AG)] : willHeal(CITY, VIRUS, QUANTITY) <- -heal(city, virus, quantity);
-    .send(AG, tell, disagreeHeal(city, virus, quantity)).
+ +!heal(CITY, VIRUS, QUANTITY)[source(AG)] : willHeal(CITY, VIRUS, QUANTITY) <- -heal(CITY, VIRUS, QUANTITY);
+    .send(AG, tell, disagreeHeal(CITY, VIRUS, QUANTITY)).
     
 // Si tiene que ir a curar una enfermedad dirigirse hacia la ciudad (TODO)
 +willHeal(CITY, VIRUS, QUANTITY) : true <- true.
 
 // Si le piden una carta entregarla siempre a no ser que la necesite para viajar a la ciudad que esta intentando curar (TODO)
++!cityCard(CITY)[source(AG)] : not willHeal(CITY, VIRUS, QUANTITY) <- .send(AG, tell, agreeCityCard(CITY));
+    +willShareInfo(CITY, AG);
+    .send(genetist, tell, willShareInfo(CITY, AG));
+    .send(analist, tell, willShareInfo(CITY, AG));
+    .send(op_expert, tell, willShareInfo(CITY, AG)).
+
++!cityCard(CITY)[source(AG)] : willHeal(CITY, VIRUS, QUANTITY) <- .send(AG, tell, disagreeCityCard(CITY)).
+
 
 // Si no tiene ninguna accion pendiente y tiene acciones disponibles buscar la ciudad mas cercana con cubos e ir hacia alli (TODO)
 
