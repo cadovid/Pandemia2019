@@ -41,10 +41,10 @@ public class GridPlayer extends GridInfo {
 			p_info.setBackground(p_color);
 			p_info.setBorder(BorderFactory.createStrokeBorder(new BasicStroke(1.0f), Color.black));
 			this.add(p_info);
-
-			// Refresh interface
-			this.revalidate();
-			this.repaint();
 		}
+
+		// Refresh interface
+		this.revalidate();
+		this.repaint();
 	}
 }

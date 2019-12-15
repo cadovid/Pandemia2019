@@ -28,7 +28,7 @@ public class GridDis extends GridInfo {
 		}
 
 		// Iterates through active infections
-		for (Infection e : c.infections) {
+		for (Infection e : c.infections.values()) {
 
 			// Retrieves Infection view data
 			Color e_color = r.color_diseases.get(e.dis.alias);
@@ -41,10 +41,10 @@ public class GridDis extends GridInfo {
 			e_info.setBackground(e_color);
 			e_info.setBorder(BorderFactory.createStrokeBorder(new BasicStroke(1.0f), Color.black));
 			this.add(e_info);
-
-			// Refresh interface
-			this.revalidate();
-			this.repaint();
 		}
+
+		// Refresh interface
+		this.revalidate();
+		this.repaint();
 	}
 }
