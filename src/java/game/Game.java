@@ -405,6 +405,18 @@ public class Game extends jason.environment.Environment {
 					} else if (aname.equals("findNearestCube")) {
 						findNearestCube();
 						consumed_action = false;
+					} else if(aname.equals("discard")) {
+						int toDiscard = this.gs.cp.hand.size() - 7;
+						for(City _ci: this.cities.values()) {
+							if (this.gs.cp.hand.containsKey(_ci.alias)) {
+								this.gs.cp.hand.remove(_ci.alias);
+								toDiscard--;
+							}
+							if (toDiscard == 0) {
+								break;
+							}
+						}
+						consumed_action = false;
 					}
 					// DISTANCE
 					// --------------------------------------------------------------------------
@@ -524,6 +536,7 @@ public class Game extends jason.environment.Environment {
 		// All percepts are added to all agents except the remaining actions,
 		// that depends on the agent
 		for (Player p : players.values()) {
+			addPercept(p.alias, Literal.parseLiteral("myHandSize(" + p.hand.size() +")"));
 			if (p.getHand().size() > Options.PLAYER_MAX_CARDS) {
 				addPercept(p.alias, Literal.parseLiteral("cardMustBeenDiscarded"));
 			}
