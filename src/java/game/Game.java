@@ -55,6 +55,7 @@ public class Game extends jason.environment.Environment {
 	public int n_diseases;
 	public int n_cities;
 	public int n_players;
+	public int n_outbreaks = 0;
 
 	// Dictionaries (key, value) - each value is retrieved as: dictionary.get(key)
 	public Hashtable<String, Role> roles;
@@ -112,6 +113,11 @@ public class Game extends jason.environment.Environment {
 		super.stop();
 
 		addPercept(Literal.parseLiteral("gameover"));
+	}
+	
+	public void win() {
+		super.stop();
+		addPercept(Literal.parseLiteral("win"));
 	}
 
 	// Called before the MAS execution with the args informed in .mas2j
@@ -730,6 +736,12 @@ public class Game extends jason.environment.Environment {
 				current_player.removeCard(city_alias);
 			}
 			disease.setCure(true);
+			// If all cured win
+			for (Disease dis : diseases.values()) {
+				if (dis.getCure()) {
+					this.win();
+				}
+			}
 			automaticDoctorDiseasesTreatment();
 
 			return true;
@@ -1285,6 +1297,11 @@ public class Game extends jason.environment.Environment {
 				infection.spread_level = Options.MAX_SPREADS_PER_CITY;
 
 				logger.info("outbreak");
+				this.n_outbreaks++;
+				if (n_outbreaks >= 8) {
+					updatePercepts();
+					this.stop();
+				}
 
 				// Expands to adjacent cities
 				for (City neigh : city.getNeighbors().values()) {
@@ -1319,6 +1336,10 @@ public class Game extends jason.environment.Environment {
 		if (gs.current_infection_level < gs.infection_levels.length) {
 			gs.current_infection_level++;
 			increased = true;
+			if (gs.current_infection_level == gs.infection_levels.length - 1) {
+				updatePercepts();
+				this.stop();
+			}
 		}
 
 		return increased;
