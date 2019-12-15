@@ -10,8 +10,6 @@
 // Si tiene que descartarse una carta se descarta la primera que encuentra (TODO: mejorar esto)
 +cardMustBeenDiscarded : hasCard(analist, CARD) <- discardCard(CARD, analist); -cardMustBeenDiscarded.
 
-+!cityCard(CITY)[source(AG)] : true <- .send(AG, tell, disagreeCityCard(CITY)).
-
 
 // Checks current city and moves to adjacent cell
 // Es como un roomba roto
@@ -81,13 +79,9 @@
             !wander.
 
 // If no diseases left, agent stops wandering           
-+!wander : turn & not disease(_,_) <- .print("No diseases left!").     
++!wander : turn & not disease(_,_) <- .print("No diseases left!").          
++!wander : true <- .print("Fail event. This should never be reached!").
 
-+!wander : turn <- ibaPor(nada).
-+turn : ibaPor(nada) <- -ibaPor(nada); !wander.
-     
-
-+turn : true <- passTurn.
 
 // Whenever a player starts its turn, the number of actions left is updated
 +turn : true <- .print("New turn");

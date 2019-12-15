@@ -100,7 +100,7 @@ public class Board {
 						// Checks for special character in city (identifies initial city)
 						// Initial city is always at the first position of the control list (used
 						// cities)
-						if (cell_text.charAt(0) == '*') {							
+						if (cell_text.charAt(0) == '*') {
 							cell_text = cell_text.substring(1);
 							this.used_cities.add(0, cell_text);
 						}
@@ -112,9 +112,7 @@ public class Board {
 							city.setCell(cell);
 
 							// Appends city alias to control list
-							// I don't understand why you put all cities here,
-							// should not be only the starting city?
-							// this.used_cities.add(cell_text);
+							this.used_cities.add(cell_text);
 
 							// City won't be loaded twice
 							picked_cities.add(cell_text);

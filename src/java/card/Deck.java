@@ -40,7 +40,7 @@ public class Deck {
 	public CityCard draw() {
 		return this.cards.remove(0);
 	}
-	
+
 	public CityCard bottomDraw() {
 		return this.cards.remove(this.cards.size() - 1);
 	}

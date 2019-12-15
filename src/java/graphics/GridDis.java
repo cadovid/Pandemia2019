@@ -41,10 +41,6 @@ public class GridDis extends GridInfo {
 			e_info.setBackground(e_color);
 			e_info.setBorder(BorderFactory.createStrokeBorder(new BasicStroke(1.0f), Color.black));
 			this.add(e_info);
-
-			// Refresh interface
-			this.revalidate();
-			this.repaint();
 		}
 	}
 }

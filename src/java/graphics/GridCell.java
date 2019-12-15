@@ -18,7 +18,7 @@ public class GridCell extends Box {
 	private Renderer r;
 
 	GridDis info_diseases;
-	GridInfo info_research;
+	GridInfo info_city;
 	GridPlayer info_players;
 
 	public GridCell(int s, Cell bc, Renderer r) {
@@ -35,7 +35,7 @@ public class GridCell extends Box {
 		}
 
 		else {
-			this.color_ldis = this.r.color_diseases.get(city.getLocalDisease());
+			this.color_ldis = this.r.color_diseases.get(city.local_disease.alias);
 		}
 
 		// Border color identifies local disease (if any)
@@ -49,15 +49,15 @@ public class GridCell extends Box {
 		cell_hud.setLayout(new GridLayout(1, 3, 0, 0));
 
 		this.info_diseases = new GridDis(r.g.n_diseases);
-		this.info_research = new GridInfo(1);
+		this.info_city = new GridInfo(6);
 		this.info_players = new GridPlayer(r.g.n_players);
 
 		this.info_diseases.setBackground(Color.red);
-		this.info_research.setBackground(Color.white);
+		this.info_city.setBackground(Color.white);
 		this.info_players.setBackground(Color.pink);
 
 		cell_hud.add(this.info_diseases);
-		cell_hud.add(this.info_research);
+		cell_hud.add(this.info_city);
 		cell_hud.add(this.info_players);
 		cell_hud.setOpaque(false);
 
@@ -72,11 +72,49 @@ public class GridCell extends Box {
 		// Refreshes players
 		this.info_players.refresh(this.board_cell, this.r);
 
-		if (this.board_cell.city.can_research) {
-			this.info_research.setOpaque(true);
-		} else {
-			this.info_research.setOpaque(false);
+		// Updates city metainfo (iterates all inner grid cells to set the elements in
+		// the appropriate order)
+		this.info_city.removeAll();
+		for (int i = 0; i < 6; i++) {
+			// Adds empty cell
+			if (i >= 0 && i < 4) {
+				JPanel empty = new JPanel();
+				empty.setOpaque(false);
+				info_city.add(empty);
+			}
+
+			// Set research (if available)
+			else if (i == 4) {
+				if (this.board_cell.city.can_research) {
+					JPanel research_ico = new JPanel();
+					research_ico.setBackground(Color.white);
+					research_ico.setOpaque(true);
+					info_city.add(research_ico);
+				}
+
+				// Adds empty cell
+				else {
+					JPanel empty = new JPanel();
+					empty.setOpaque(false);
+					info_city.add(empty);
+				}
+			}
+
+			// Set city name
+			else if (i == 5) {
+				JLabel c_alias = new JLabel(this.board_cell.city.alias, SwingConstants.CENTER);
+				c_alias.setBackground(this.color_ldis);
+				c_alias.setOpaque(true);
+				info_city.add(c_alias);
+			}
+
 		}
+
+		/*
+		 * // Refresh research if(this.board_cell.city.can_research) {
+		 * this.info_research.setOpaque(true); } else {
+		 * this.info_research.setOpaque(false); }
+		 */
 	}
 
 	/*

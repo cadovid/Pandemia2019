@@ -222,6 +222,18 @@ public class City {
 		return infection;
 	}
 
+	// Removes an infection from the city
+	public void removeInfection(Disease disease) {
+		int index = 0;
+		for (Infection i : this.infections) {
+			if (i.dis.equals(disease)) {
+				this.infections.remove(index);
+				return;
+			}
+			index++;
+		}
+	}
+
 	// Dummy method to print city data
 	public void dump() {
 		System.out.printf(">>Printing city data (%s)\n", this.name);

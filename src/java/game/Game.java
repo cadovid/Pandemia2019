@@ -114,7 +114,7 @@ public class Game extends jason.environment.Environment {
 
 		addPercept(Literal.parseLiteral("gameover"));
 	}
-	
+
 	public void win() {
 		super.stop();
 		addPercept(Literal.parseLiteral("win"));
@@ -336,7 +336,12 @@ public class Game extends jason.environment.Environment {
 						Disease dis = diseases.get(dis_alias);
 						if (dis != null) {
 							City city = gs.cp.getCity();
-							if (dis.treatDisease(city.getInfection(dis), gs.cp)) {
+							/*
+							 * if (dis.treatDisease(city.getInfection(dis), gs.cp)) { consumed_action =
+							 * true; }
+							 */
+
+							if (dis.treatDisease(city, dis, gs.cp)) {
 								consumed_action = true;
 							} else {
 								consumed_action = false;
@@ -460,7 +465,7 @@ public class Game extends jason.environment.Environment {
 							drawInfectCard();
 							this.render.refresh(null, null);
 						}
-						
+
 						gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
 						gs.cp = nextPlayer(gs.cp);
 						// For the next turn
@@ -496,7 +501,7 @@ public class Game extends jason.environment.Environment {
 			if (gs.round == Round.INFECT) {
 				gs.round = Round.ACT;
 			}
-			
+
 			logger.info("updating percepts");
 			updatePercepts();
 			logger.info("percepts updated");
@@ -544,17 +549,20 @@ public class Game extends jason.environment.Environment {
 		for (City city : this.cities.values()) {
 			String closest = getClosestCI(city).alias;
 			addPercept(Literal.parseLiteral("closestCI(" + city.alias + "," + closest + ")"));
-			
+
 			for (City city_aux : this.cities.values()) {
-				int distance = manhattanDistanceTorus(city.cell.getCoordinates(), city_aux.cell.getCoordinates(), this.gs.board.n_rows, this.gs.board.n_cols)[0];
-				addPercept(Literal.parseLiteral("distance(" + city.alias + "," + city_aux.alias + "," + distance + ")"));
+				int distance = manhattanDistanceTorus(city.cell.getCoordinates(), city_aux.cell.getCoordinates(),
+						this.gs.board.n_rows, this.gs.board.n_cols)[0];
+				addPercept(
+						Literal.parseLiteral("distance(" + city.alias + "," + city_aux.alias + "," + distance + ")"));
 			}
-			
+
 			if (city.canResearch()) {
 				addPercept(Literal.parseLiteral("hasCI(" + city.alias + ")"));
 			}
 			// Position of cities: at(city,alias,x,y)
-			addPercept(Literal.parseLiteral("at(" + city.alias + "," + city.local_disease.alias + "," + city.cell.x + "," + city.cell.y + ")"));
+			addPercept(Literal.parseLiteral(
+					"at(" + city.alias + "," + city.local_disease.alias + "," + city.cell.x + "," + city.cell.y + ")"));
 
 			// Sum of diseases viruses
 			int ilevel = 0;
@@ -616,7 +624,7 @@ public class Game extends jason.environment.Environment {
 	// Buttons behaviour
 	public void controlFeedback(_aux.CustomTypes.GameMode gm) {
 		removePercept(Literal.parseLiteral("control_manual"));
-		removePercept(Literal.parseLiteral("control_timeout(_)"));
+		removePerceptsByUnif(Literal.parseLiteral("control_timeout(_)"));
 
 		if (gm == _aux.CustomTypes.GameMode.TIMESTAMP) {
 			addPercept(Literal.parseLiteral("control_timeout(" + _aux.Options.GP_TIMEOUT_SLEEP + ")"));
@@ -939,7 +947,6 @@ public class Game extends jason.environment.Environment {
 	// --------------------------------------------------------------------------
 
 	public void findPlayerToAsk(String desiredDisease) {
-		logger.info(String.valueOf(this.solicitedCards.size()));
 		Player desiredPlayer = null;
 		CityCard desiredCard = null;
 		int minimumDistanceToCard = Integer.MAX_VALUE;
@@ -974,7 +981,6 @@ public class Game extends jason.environment.Environment {
 		}
 		if (desiredPlayer != null) {
 			this.solicitedCards.add(desiredCard.city);
-			logger.info(String.valueOf(this.solicitedCards.size()));
 			addPercept(gs.cp.alias,
 					Literal.parseLiteral("soliciteCardE(" + desiredPlayer.alias + "," + desiredCard.city.alias + ")"));
 			// addPercept(gs.cp.alias, Literal.parseLiteral("soliciteCardE(NADA)"));
@@ -1347,7 +1353,7 @@ public class Game extends jason.environment.Environment {
 		this.infections = new ArrayList<Infection>();
 		for (City city : cities.values()) {
 			for (Infection inf : city.infections) {
-				if (/*inf.spread_level > 0 && */!this.infections.contains(inf)) {
+				if (/* inf.spread_level > 0 && */!this.infections.contains(inf)) {
 					infections.add(inf);
 				}
 			}

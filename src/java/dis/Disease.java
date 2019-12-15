@@ -128,7 +128,8 @@ public class Disease {
 	 * @param current_player
 	 * @return
 	 */
-	public boolean treatDisease(Infection e, Player current_player) {
+	public boolean treatDisease(City c, Disease dis, Player current_player) {
+		Infection e = c.getInfection(dis);
 		if (cure == true || current_player.getRole().alias.equals("doctor")) {
 			heal(e.spread_level);
 			e.spread_level = 0;
@@ -136,13 +137,18 @@ public class Disease {
 			heal(1);
 			e.spread_level -= 1;
 		}
+
+		// Removes infection from city
+		if (e.spread_level <= 0) {
+			c.removeInfection(dis);
+		}
+
 		if (cure && current_player.getRole().alias.equals("doctor")) {
 			return false;
 		} else {
 			return true;
 		}
 	}
-
 
 	// Weakens disease by increasing spreads_left counter by "n_heals"
 	public void heal(int n_heals) {

@@ -46,6 +46,8 @@ public class Grid extends Box {
 	 */
 	public void refresh(ArrayList<String> city_aliases) {
 		for (String city_alias : city_aliases) {
+			// System.out.println(">>>>>Refreshing graphs for city " + city_alias);
+
 			// Retrieves relevant grid cell and calls its update method
 			GridCell gcell = this.grid_cityCells.get(city_alias);
 			if (gcell == null) {
