@@ -287,6 +287,7 @@ public class Game extends jason.environment.Environment {
 				// This action does never consume action, it happens in draw phase
 				// or when sharing info with another player
 				consumed_action = false;
+				updatePercepts();
 			} else {
 				if (gs.round == Round.ACT) {
 					if (aname.equals("moveAdjacent")) {
@@ -459,7 +460,7 @@ public class Game extends jason.environment.Environment {
 							drawInfectCard();
 							this.render.refresh(null, null);
 						}
-						gs.round = Round.ACT;
+						
 						gs.p_actions_left = Options.PLAYER_MAX_ACTIONS;
 						gs.cp = nextPlayer(gs.cp);
 						// For the next turn
@@ -492,6 +493,10 @@ public class Game extends jason.environment.Environment {
 			}
 		}
 		if (consumed_action || gs.round != Round.ACT) {
+			if (gs.round == Round.INFECT) {
+				gs.round = Round.ACT;
+			}
+			
 			logger.info("updating percepts");
 			updatePercepts();
 			logger.info("percepts updated");
@@ -539,6 +544,12 @@ public class Game extends jason.environment.Environment {
 		for (City city : this.cities.values()) {
 			String closest = getClosestCI(city).alias;
 			addPercept(Literal.parseLiteral("closestCI(" + city.alias + "," + closest + ")"));
+			
+			for (City city_aux : this.cities.values()) {
+				int distance = manhattanDistanceTorus(city.cell.getCoordinates(), city_aux.cell.getCoordinates(), this.gs.board.n_rows, this.gs.board.n_cols)[0];
+				addPercept(Literal.parseLiteral("distance(" + city.alias + "," + city_aux.alias + "," + distance + ")"));
+			}
+			
 			if (city.canResearch()) {
 				addPercept(Literal.parseLiteral("hasCI(" + city.alias + ")"));
 			}
@@ -562,7 +573,8 @@ public class Game extends jason.environment.Environment {
 			}
 		}
 
-		// Active infections
+		// All (not only active) infections
+		updateGameGeneralInfectionsList();
 		for (Infection i : this.infections) {
 			addPercept(Literal
 					.parseLiteral("infected(" + i.city_host.alias + "," + i.dis.alias + "," + i.spread_level + ")"));
@@ -806,6 +818,16 @@ public class Game extends jason.environment.Environment {
 	 */
 	public boolean directFlight(Player current_player, City destination) {
 		boolean moved = false;
+		// The operation expert can fly to everywhere from a CI
+		// (relaxed, instead of discarding a card of any city, no discard is needed)
+		if (current_player.getRole().alias.equals("op_expert")) {
+			if (current_player.city.canResearch()) {
+				current_player.getCity().removePlayer(current_player);
+				current_player.setCity(destination);
+				current_player.getCity().putPlayer(current_player);
+				return true;
+			}
+		}
 		for (Card card : current_player.getHand().values()) {
 			if (card.getCity() == destination) {
 				current_player.getCity().removePlayer(current_player);
@@ -917,7 +939,7 @@ public class Game extends jason.environment.Environment {
 	// --------------------------------------------------------------------------
 
 	public void findPlayerToAsk(String desiredDisease) {
-
+		logger.info(String.valueOf(this.solicitedCards.size()));
 		Player desiredPlayer = null;
 		CityCard desiredCard = null;
 		int minimumDistanceToCard = Integer.MAX_VALUE;
@@ -952,6 +974,7 @@ public class Game extends jason.environment.Environment {
 		}
 		if (desiredPlayer != null) {
 			this.solicitedCards.add(desiredCard.city);
+			logger.info(String.valueOf(this.solicitedCards.size()));
 			addPercept(gs.cp.alias,
 					Literal.parseLiteral("soliciteCardE(" + desiredPlayer.alias + "," + desiredCard.city.alias + ")"));
 			// addPercept(gs.cp.alias, Literal.parseLiteral("soliciteCardE(NADA)"));
@@ -1219,7 +1242,11 @@ public class Game extends jason.environment.Environment {
 				}
 			}
 		}
-		addPercept(gs.cp.alias, Literal.parseLiteral("cityNearestCubeE(" + cityNearestCube.alias + ")"));
+		if (cityNearestCube != null) {
+			addPercept(gs.cp.alias, Literal.parseLiteral("cityNearestCubeE(" + cityNearestCube.alias + ")"));
+		} else {
+			addPercept(gs.cp.alias, Literal.parseLiteral("notNearestCubeE"));
+		}
 	}
 
 	public String[] shortRouteChoice(int[] finalPosition) {
@@ -1320,7 +1347,7 @@ public class Game extends jason.environment.Environment {
 		this.infections = new ArrayList<Infection>();
 		for (City city : cities.values()) {
 			for (Infection inf : city.infections) {
-				if (inf.spread_level > 0 && !this.infections.contains(inf)) {
+				if (/*inf.spread_level > 0 && */!this.infections.contains(inf)) {
 					infections.add(inf);
 				}
 			}

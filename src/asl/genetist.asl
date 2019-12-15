@@ -1,8 +1,12 @@
 //Objetivo inicial: 
 !encontrarVirusPerseguir.
 
++!cityCard(CITY)[source(AG)] : true <- .send(AG, tell, disagreeCityCard(CITY)).
+
 
 +!perseguirVirusObjetivo(VIRUS): cardMustBeenDiscarded & myCard(CITY) & not at(CITY,VIRUS,X,Y) <- discardCard(CITY,genetist); !perseguirVirusObjetivo(VIRUS).
+
++!perseguirVirusObjetivo(VIRUS): cardMustBeenDiscarded & myCard(CITY) & at(CITY,VIRUS,X,Y) & myCardsNumber(VIRUS,N) & (N>=7) <- discardCard(CITY,genetist); !perseguirVirusObjetivo(VIRUS).
 
 
 //EN CUALQUIER TURNO ==> Si no tengo el objetivo de perseguir ningún virus, elijo qué virus perseguir dependiendo de cuál es el color que más se repite en mi mano y que no haya sido ya descubierta y añado el objetivo de perseguir ese virus. 
@@ -22,7 +26,7 @@
 
 
 //Si no me la quiere dar, pido al siguiente más cercano. 
-+disagreeCityCard(CITY)[source(AG)] : debesPreguntar(AG,CITY) <- -debesPreguntar(AG,CITY); findPlayerToAsk(VIRUS).
++disagreeCityCard(CITY)[source(AG)] : perseguirVirus(VIRUS) & debesPreguntar(AG,CITY) <- -debesPreguntar(AG,CITY); findPlayerToAsk(VIRUS).
 	
 	
 	
@@ -35,7 +39,7 @@
 //+nobodySharesE : true <- .print("nadieQuiereDarmeCarta..."); passTurn; !perseguirVirusObjetivo(VIRUS).
 +nobodySharesE : true <- findNearestCube.
 +cityNearestCubeE(CITY) : true <- !irAQuitarCubos(CITY).
-
++notNearestCubeE : perseguirVirus(VIRUS) <- passTurn; !perseguirVirusObjetivo(VIRUS).
 
 
 //EN MI TURNO ==> Si tengo el objetivo de ir a un sitio para que me den una carta, calculo una buena ruta que no desperdicie una carta del color que persigo (a) y me muevo hacia allí dependiendo del objetivo que me devuelva la ruta. 
@@ -47,7 +51,7 @@
 
 
 //EN MI TURNO ==> Si estoy en el destino junto con el otro agente, que me dé su carta, quito objetivo de intercambiar carta (intercambiar es una acción) y hago untell de la intención. 
-+!irACiudad(CITY) : turn & atCity(genetist,CITY) & tratoIntercambioCon(AG,CITY) & at_AG(AG,CITY) <- -tratoIntercambioCon(AG,CITY); .send(analist,untell,willShareInfo(CITY,AG)); .send(op_expert,untell,willShareInfo(CITY,AG)); .send(doctor,untell,willShareInfo(CITY,AG)); shareInfo(AG,CITY,genetist); -perseguirVirus(VIRUS); !encontrarVirusPerseguir.
++!irACiudad(CITY) : turn & atCity(genetist,CITY) & tratoIntercambioCon(AG,CITY) & at_AG(AG,CITY) <- -tratoIntercambioCon(AG,CITY); .send(analist,untell,willShareInfo(CITY,AG)); .send(op_expert,untell,willShareInfo(CITY,AG)); .send(doctor,untell,willShareInfo(CITY,AG)); shareInfo(AG,CITY,false); -perseguirVirus(VIRUS); !encontrarVirusPerseguir.
 
 
 
@@ -58,18 +62,18 @@
 
 //EN MI TURNO ==> Si estoy en el destino, sigo teniendo el objetivo de intercambiar carta, no está el otro agente, no hay cubos en mi posición, hay cubos en una posición adyacente y me quedan 3 o 4 acciones, añado objetivo de quitar cubos en esa posición. 
 //EN MI TURNO ==> Si tengo el objetivo de intercambiar carta y de quitar cubos, no estoy en el destino y me queda una acción, elimino el objetivo de quitar cubos en esa posición. 
-+!irACiudad(CITY) : turn & atCity(genetistCITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N=0) & adjacent(CITY,CITY2) & left_actions(4) & infected(CITY2,VIRUS2,Qtd2) & (Qtd2 >1) <- moveToNearObjective(CITY2); treatDisease(VIRUS2);treatDisease(VIRUS2);moveToNearObjective(CITY);!irACiudad(CITY).
-+!irACiudad(CITY) : turn & atCity(genetistCITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N=0) & adjacent(CITY,CITY2) & left_actions(4) & infected(CITY2,VIRUS2,1) & infected(CITY2,VIRUS3,1) & not (VIRUS2=VIRUS3) <- moveToNearObjective(CITY2); treatDisease(VIRUS2);treatDisease(VIRUS3);moveToNearObjective(CITY);!irACiudad(CITY).
++!irACiudad(CITY) : turn & atCity(genetist, CITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N==0) & adjacent(CITY,CITY2) & left_actions(4) & infected(CITY2,VIRUS2,Qtd2) & (Qtd2 >1) <- moveToNearObjective(CITY2); treatDisease(VIRUS2);treatDisease(VIRUS2);moveToNearObjective(CITY);!irACiudad(CITY).
++!irACiudad(CITY) : turn & atCity(genetist, CITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N==0) & adjacent(CITY,CITY2) & left_actions(4) & infected(CITY2,VIRUS2,1) & infected(CITY2,VIRUS3,1) & not (VIRUS2=VIRUS3) <- moveToNearObjective(CITY2); treatDisease(VIRUS2);treatDisease(VIRUS3);moveToNearObjective(CITY);!irACiudad(CITY).
 
-+!irACiudad(CITY) : turn & atCity(genetistCITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N=0) & adjacent(CITY,CITY2) & left_actions(numActions) & (numActions>=3) & infectionLVL(CITY2,1) & infected(CITY2,VIRUS2,1) <- moveToNearObjective(CITY2); treatDisease(VIRUS1);moveToNearObjective(CITY);!irACiudad(CITY).
-+!irACiudad(CITY) : turn & atCity(genetistCITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N=0) & adjacent(CITY,CITY2) & left_actions(numActions) & (numActions>=3) & infectionLVL(CITY2,0) <- passTurn; !irACiudad(CITY).
-+!irACiudad(CITY) : turn & atCity(genetistCITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N=0) & left_actions(numActions) & (numActions<3) <- passTurn; !irACiudad(CITY).
-
++!irACiudad(CITY) : turn & atCity(genetist, CITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N==0) & adjacent(CITY,CITY2) & left_actions(numActions) & (numActions>=3) & infectionLVL(CITY2,1) & infected(CITY2,VIRUS2,1) <- moveToNearObjective(CITY2); treatDisease(VIRUS1);moveToNearObjective(CITY);!irACiudad(CITY).
++!irACiudad(CITY) : turn & atCity(genetist, CITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N==0) & adjacent(CITY,CITY2) & left_actions(numActions) & (numActions>=3) & infectionLVL(CITY2,0) <- passTurn; !irACiudad(CITY).
++!irACiudad(CITY) : turn & atCity(genetist, CITY) & tratoIntercambioCon(AG,CITY) & not atCity(AG,CITY) & infected(CITY,VIRUS,N) & (N==0) & left_actions(numActions) & (numActions<3) <- passTurn; !irACiudad(CITY).
++!irACiudad(CITY): turn <- passTurn; !irACiudad(CITY).
 
 
 
 //EN CUALQUIER TURNO ==> Si tengo el objetivo de perseguir un virus, tengo suficientes cartas y no tengo el objetivo de ir a un centro de investigación, detecto el centro de investigación más cercano (definiendo la cercanía de forma similar que lo comentado en (b)) y añado el objetivo de moverme a ese centro de investigación y la intención de descubrir cura. Si además he declarado intención de intercambiar carta, hago untell de la intención.
-+!perseguirVirusObjetivo(VIRUS) : myCardsNumber(VIRUS,X) & X>=4 & turn <- findCIToReach(VIRUS).
++!perseguirVirusObjetivo(VIRUS) : myCardsNumber(VIRUS,X) & (X>=4) & turn <- findCIToReach(VIRUS).
 +irACIE(CITY) : true <- +irACI(CITY); .send(analist,tell,willDiscoverCure(VIRUS)); .send(op_expert,tell,willDiscoverCure(VIRUS)); .send(doctor,tell,willDiscoverCure(VIRUS)); !irADescubrirCura(CITY,VIRUS).
 
 
@@ -89,6 +93,7 @@
 //EN CUALQUIER TURNO ==> Si tengo muchas cartas, descarto aquellas cartas que no son del color que persigo y que no estoy utilizando para moverme (a). 
 +cardMustBeenDiscarded :  not turn & perseguirVirus(VIRUS) & myCard(CITY) & not at(CITY,VIRUS,X,Y) <- discardCard(CITY,genetist).
 
++cardMustBeenDiscarded :  not turn & perseguirVirus(VIRUS) & myCard(CITY) & at(CITY,VIRUS,X,Y) & myCardsNumber(VIRUS,N) & (N>=7) <- discardCard(CITY,genetist).
 
 
 //EN MI TURNO ==> Si tengo el objetivo de quitar cubitos en un sitio y no estoy en ese sitio, me muevo a la casilla adyacente próxima a ese sitio, y si además es mi cuarta acción, quito el objetivo. 
