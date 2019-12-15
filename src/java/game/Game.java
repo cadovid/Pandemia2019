@@ -362,7 +362,15 @@ public class Game extends jason.environment.Environment {
 					} else if (aname.equals("findPlayerToAsk")) {
 						findPlayerToAsk(action.getTerm(0).toString());
 						consumed_action = false;
-					} else if (aname.equals("moveToNearObjective")) {
+					} else if (aname.equals("findCIToReach")) {
+						findCIToReach(action.getTerm(0).toString());
+						consumed_action = false;
+					}
+					/*
+					 * else if (aname.equals("smartDiscard")) {
+					 * smartDiscard(action.getTerm(0).toString()); consumed_action = false; }
+					 */
+					else if (aname.equals("moveToNearObjective")) {
 						String nombreCiudad = action.getTerm(0).toString();
 						int[] coordenadasCiudad = null;
 						for (City city : this.cities.values()) {
@@ -897,7 +905,6 @@ public class Game extends jason.environment.Environment {
 	// --------------------------------------------------------------------------
 
 	public void findPlayerToAsk(String desiredDisease) {
-		System.out.println("===========> " + desiredDisease);
 
 		Player desiredPlayer = null;
 		CityCard desiredCard = null;
@@ -905,20 +912,17 @@ public class Game extends jason.environment.Environment {
 		for (Player player : this.players.values()) {
 
 			for (String cardAlias : player.getHand().keySet()) {
-				System.out.println("=====================================>" + cardAlias);
 
 				boolean ignorada = false;
 				for (City cardYaPreguntada : this.solicitedCards) {
 					if (cardYaPreguntada.alias.equals(cardAlias)) {
 						ignorada = true;
-						System.out.println("===========> IGNORADA" + cardAlias);
 					}
 				}
 				if (!ignorada & !player.alias.equals(gs.cp.alias)) {
 					Disease diseaseCard = player.getHand().get(cardAlias).getDisease();
 					String diseaseAlias = diseaseCard.alias;
 					if (diseaseAlias.equals(desiredDisease)) {
-						System.out.println("===================> YUPI");
 						City cityCard = player.getHand().get(cardAlias).getCity();
 						Cell cityCell = cityCard.getCell();
 						int[] cardPosition = cityCell.getCoordinates();
@@ -935,8 +939,6 @@ public class Game extends jason.environment.Environment {
 			}
 		}
 		if (desiredPlayer != null) {
-			System.out
-					.println("FINALLLLLLLLLLLLLLLLLLLLLLLLLLL " + desiredCard.city.alias + " " + minimumDistanceToCard);
 			this.solicitedCards.add(desiredCard.city);
 			addPercept(gs.cp.alias,
 					Literal.parseLiteral("soliciteCardE(" + desiredPlayer.alias + "," + desiredCard.city.alias + ")"));
@@ -1116,7 +1118,6 @@ public class Game extends jason.environment.Environment {
 		case "4":
 			for (City city : this.cities.values()) {
 				if (city.alias.equals(partsAction[1])) {
-					System.out.println("rnsofdigvkmzpv PUES ESO " + partsAction[1]);
 					directFlight(gs.cp, city);
 					break;
 				}
@@ -1125,7 +1126,6 @@ public class Game extends jason.environment.Environment {
 		case "5":
 			for (City city : this.cities.values()) {
 				if (city.alias.equals(partsAction[1])) {
-					System.out.println("rnsofdigvkmzpv PUES ESO " + partsAction[1]);
 					charterFlight(gs.cp, city);
 					break;
 				}
@@ -1134,7 +1134,6 @@ public class Game extends jason.environment.Environment {
 		case "6":
 			for (City city : this.cities.values()) {
 				if (city.alias.equals(partsAction[1])) {
-					System.out.println("rnsofdigvkmzpv PUES ESO " + partsAction[1]);
 					airBridge(gs.cp, city);
 					break;
 				}
@@ -1199,7 +1198,6 @@ public class Game extends jason.environment.Environment {
 				sumValores += inf.spread_level;
 			}
 			if (sumValores > 0) {
-				System.out.println("PRUEBO CON: " + city.alias + " " + sumValores);
 				Cell cell = city.getCell();
 				int[] finalPosition = cell.getCoordinates();
 				String[] aux = shortRouteChoice(finalPosition);
@@ -1237,6 +1235,23 @@ public class Game extends jason.environment.Environment {
 			moveAdjacent(gs.cp, CustomTypes.Direction.LEFT);
 			break;
 		}
+	}
+
+	public void findCIToReach(String desiredDisease) {
+		int costNearestCI = Integer.MAX_VALUE;
+		City nearestCI = null;
+		for (City city : cities.values()) {
+			if (city.canResearch()) {
+				Cell cell = city.getCell();
+				int[] positionCI = cell.getCoordinates();
+				String[] aux = routeChoice(positionCI, desiredDisease);
+				if (costNearestCI > Integer.parseInt(aux[0])) {
+					costNearestCI = Integer.parseInt(aux[0]);
+					nearestCI = city;
+				}
+			}
+		}
+		addPercept(gs.cp.alias, Literal.parseLiteral("irACIE(" + nearestCI.alias + ")"));
 	}
 
 	// DISTANCE
