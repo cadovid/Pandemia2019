@@ -543,7 +543,7 @@ public class Game extends jason.environment.Environment {
 				addPercept(Literal.parseLiteral("hasCI(" + city.alias + ")"));
 			}
 			// Position of cities: at(city,alias,x,y)
-			addPercept(Literal.parseLiteral("at(city," + city.alias + "," + city.cell.x + "," + city.cell.y + ")"));
+			addPercept(Literal.parseLiteral("at(" + city.alias + "," + city.local_disease + "," + city.cell.x + "," + city.cell.y + ")"));
 
 			// Sum of diseases viruses
 			int ilevel = 0;
